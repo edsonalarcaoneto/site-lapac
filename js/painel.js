@@ -44,6 +44,8 @@
       conteudo.push(el("p", { class: "texto-suave", text: "Carregando…" }));
     } else if (A.modo === "supabase" && estado.primeiroAcesso) {
       conteudo.push(formPrimeiroAcesso(erro));
+    } else if (A.modo === "supabase" && estado.recuperar) {
+      conteudo.push(formRecuperar(erro));
     } else if (A.modo === "supabase") {
       var email = el("input", { id: "login-email", class: "campo", type: "email", autocomplete: "username", inputmode: "email", placeholder: "seu.email@exemplo.com" });
       var senha = el("input", { id: "login-senha", class: "campo", type: "password", autocomplete: "current-password" });
@@ -51,8 +53,13 @@
       var form = el("form", { class: "login__form", novalidate: true }, [
         el("label", { class: "campo-grupo", for: "login-email" }, [el("span", { class: "campo-rotulo", text: "E-mail" }), email]),
         el("label", { class: "campo-grupo", for: "login-senha" }, [el("span", { class: "campo-rotulo", text: "Senha" }), senha]),
-        botaoEntrar,
-        el("p", { class: "campo-ajuda", text: "Esqueceu a senha? Peça ao diretor que administra o site para apagar sua conta e faça o primeiro acesso de novo." })
+        el("div", { class: "login__acoes" }, [
+          botaoEntrar,
+          el("button", {
+            type: "button", class: "botao botao--discreto", text: "Esqueci minha senha",
+            onclick: function () { estado.recuperar = { passo: 1, email: email.value.trim() }; renderizar(); }
+          })
+        ])
       ]);
       var irPrimeiro = el("div", { class: "login__primeiro" }, [
         el("p", { class: "campo-ajuda", text: "Ainda não tem conta?" }),
@@ -114,10 +121,11 @@
     }
 
     var primeiro = A.modo === "supabase" && estado.primeiroAcesso;
+    var recuperar = A.modo === "supabase" && estado.recuperar;
     return el("div", { class: "login" }, [
       el("section", { class: "bloco login__cartao" }, [
-        el("h2", { class: "rotulo", text: primeiro ? "Primeiro acesso" : "Entrar" }),
-        el("p", { class: "titulo-item", text: primeiro ? "Criar a sua conta de diretor" : "Acesso dos diretores" })
+        el("h2", { class: "rotulo", text: primeiro ? "Primeiro acesso" : recuperar ? "Nova senha" : "Entrar" }),
+        el("p", { class: "titulo-item", text: primeiro ? "Criar a sua conta de diretor" : recuperar ? "Recuperar o acesso" : "Acesso dos diretores" })
       ].concat(conteudo, [erro])),
       el("section", { class: "login__lado" }, [
         el("p", { class: "login__lado-titulo", text: "O que dá para fazer aqui" }),
@@ -133,22 +141,50 @@
   }
 
   /* ---------- primeiro acesso (site publicado) ----------
-     Passo 1: e-mail (duas vezes) e senha padrão recebida da diretoria.
-     Passo 2: nome, cargo e a nova senha (duas vezes). A conta só é criada no fim,
-     e o servidor confere a senha padrão (ver supabase/primeiro-acesso.sql). */
+     Passo 1: e-mail e senha padrão recebida da diretoria.
+     Passo 2: nome, cargo e a nova senha (duas vezes). O servidor confere a senha padrão
+     (ver supabase/primeiro-acesso.sql) e envia um código ao e-mail.
+     Passo 3: o código do e-mail, que confirma o endereço e ativa a conta. */
   function grupo(id, rotulo, controle, ajuda) {
     return el("label", { class: "campo-grupo", for: id }, [el("span", { class: "campo-rotulo", text: rotulo }), controle]
       .concat(ajuda ? [el("span", { class: "campo-ajuda", text: ajuda })] : []));
   }
-  function iguaisEmail(a, b) { return a.trim().toLowerCase() === b.trim().toLowerCase(); }
   function emailValido(a) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a.trim()); }
+  function campoCodigo(id) {
+    var c = el("input", { id: id, class: "campo campo--codigo", type: "text", inputmode: "numeric", autocomplete: "one-time-code", maxlength: "10", placeholder: "000000" });
+    c.addEventListener("input", function () { c.value = c.value.replace(/\D/g, ""); });
+    return c;
+  }
+  function msgSenha(code) {
+    return code === "senha_fraca" ? "Senha fraca demais. Use mais caracteres, misturando letras e números."
+      : code === "senha_igual" ? "A nova senha precisa ser diferente da atual."
+        : null;
+  }
+  function botaoReenviar(fn, erro) {
+    var b = el("button", { type: "button", class: "botao botao--discreto", text: "Reenviar o código" });
+    b.addEventListener("click", function () {
+      b.disabled = true;
+      fn().then(function () {
+        U.aviso("Código reenviado. Confira também a caixa de spam.");
+        setTimeout(function () { b.disabled = false; }, 60000);
+      }, function (err) {
+        b.disabled = false;
+        erro.textContent = err && err.code === "espera"
+          ? "Espere um minuto antes de pedir outro código."
+          : err && err.code === "envio"
+            ? "O site não conseguiu enviar o código para este e-mail. Fale com a diretoria."
+            : "Não foi possível reenviar agora. Tente de novo em instantes.";
+      });
+    });
+    return b;
+  }
 
   function formPrimeiroAcesso(erro) {
     var pa = estado.primeiroAcesso;
     var d = pa.dados;
     var voltar = el("button", {
       type: "button", class: "botao botao--discreto",
-      text: pa.passo === 1 ? "Voltar para o login" : "Voltar",
+      text: pa.passo === 1 ? "Voltar para o login" : pa.passo === 3 ? "Corrigir o e-mail" : "Voltar",
       onclick: function () {
         if (pa.passo === 1) estado.primeiroAcesso = null; else pa.passo = 1;
         renderizar();
@@ -157,29 +193,54 @@
 
     if (pa.passo === 1) {
       var email = el("input", { id: "pa-email", class: "campo", type: "email", autocomplete: "email", inputmode: "email", value: d.email || "" });
-      var email2 = el("input", { id: "pa-email2", class: "campo", type: "email", autocomplete: "off", inputmode: "email", value: d.email2 || "" });
       var convite = el("input", { id: "pa-convite", class: "campo", type: "password", autocomplete: "off", value: d.convite || "" });
-      var seguir = el("button", { type: "submit", class: "botao", text: "Continuar" });
       var f1 = el("form", { class: "login__form", novalidate: true }, [
-        el("p", { class: "texto-suave", text: "Passo 1 de 2" }),
-        grupo("pa-email", "Seu e-mail", email, "Use o e-mail que você quer usar para entrar no site."),
-        grupo("pa-email2", "Repita o e-mail", email2),
+        el("p", { class: "texto-suave", text: "Passo 1 de 3" }),
+        grupo("pa-email", "Seu e-mail", email, "Você vai receber um código neste e-mail para confirmar que ele está certo."),
         grupo("pa-convite", "Senha padrão", convite, "A senha que a diretoria passou para o primeiro acesso."),
-        seguir, voltar
+        el("div", { class: "login__acoes" }, [el("button", { type: "submit", class: "botao", text: "Continuar" }), voltar])
       ]);
-      email2.addEventListener("paste", function (e) { e.preventDefault(); erro.textContent = "Digite o e-mail de novo, sem colar, para conferir."; });
       f1.addEventListener("submit", function (e) {
         e.preventDefault();
-        d.email = email.value; d.email2 = email2.value; d.convite = convite.value;
+        d.email = email.value.trim().toLowerCase(); d.convite = convite.value;
         if (!emailValido(email.value)) { erro.textContent = "Confira o e-mail: ele não parece completo."; email.focus(); return; }
-        if (!iguaisEmail(email.value, email2.value)) { erro.textContent = "Os dois e-mails não são iguais. Confira e digite de novo."; email2.focus(); return; }
         if (!convite.value) { erro.textContent = "Digite a senha padrão."; convite.focus(); return; }
         erro.textContent = "";
         pa.passo = 2;
         renderizar();
       });
-      setTimeout(function () { (d.email ? email2 : email).focus(); }, 0);
+      setTimeout(function () { (d.email ? convite : email).focus(); }, 0);
       return f1;
+    }
+
+    if (pa.passo === 3) {
+      var codigo = campoCodigo("pa-codigo");
+      var confirmar = el("button", { type: "submit", class: "botao", text: "Confirmar e entrar" });
+      var f3 = el("form", { class: "login__form", novalidate: true }, [
+        el("p", { class: "texto-suave", text: "Passo 3 de 3" }),
+        el("p", null, ["Enviamos um código para ", el("strong", { text: d.email }), ". Digite-o abaixo para confirmar o e-mail e ativar a sua conta."]),
+        grupo("pa-codigo", "Código do e-mail", codigo, "Não chegou? Confira a caixa de spam ou peça outro código."),
+        el("div", { class: "login__acoes" }, [confirmar, botaoReenviar(function () { return A.reenviarCodigo(d.email); }, erro), voltar])
+      ]);
+      f3.addEventListener("submit", function (e) {
+        e.preventDefault();
+        if (codigo.value.length < 6) { erro.textContent = "Digite o código completo que chegou no e-mail."; codigo.focus(); return; }
+        erro.textContent = "";
+        confirmar.disabled = true;
+        A.confirmarEmail(d.email, codigo.value).then(function () {
+          estado.primeiroAcesso = null;
+          U.aviso("E-mail confirmado. Bem-vindo ao painel!");
+        }, function (err) {
+          confirmar.disabled = false;
+          erro.textContent = err && err.code === "codigo"
+            ? "Código errado ou vencido. Confira o e-mail mais recente ou peça outro código."
+            : err && err.code === "sem_permissao"
+              ? "A conta foi confirmada, mas não está na lista de diretores. Fale com a diretoria."
+              : "Não foi possível confirmar agora. Confira a internet e tente de novo.";
+        });
+      });
+      setTimeout(function () { codigo.focus(); }, 0);
+      return f3;
     }
 
     var nome = el("input", { id: "pa-nome", class: "campo", type: "text", autocomplete: "name", value: d.nome || "" });
@@ -190,12 +251,12 @@
     var senha2 = el("input", { id: "pa-senha2", class: "campo", type: "password", autocomplete: "new-password" });
     var criar = el("button", { type: "submit", class: "botao", text: "Criar minha conta" });
     var f2 = el("form", { class: "login__form", novalidate: true }, [
-      el("p", { class: "texto-suave", text: "Passo 2 de 2 · " + d.email.trim().toLowerCase() }),
+      el("p", { class: "texto-suave", text: "Passo 2 de 3 · " + d.email }),
       grupo("pa-nome", "Seu nome", nome),
       grupo("pa-cargo", "Seu cargo na diretoria", cargo), cargos,
       grupo("pa-senha", "Crie a sua senha", senha, "Pelo menos 8 caracteres, diferente da senha padrão."),
       grupo("pa-senha2", "Repita a senha", senha2),
-      criar, voltar
+      el("div", { class: "login__acoes" }, [criar, voltar])
     ]);
     f2.addEventListener("submit", function (e) {
       e.preventDefault();
@@ -206,7 +267,12 @@
       if (senha.value !== senha2.value) { erro.textContent = "As duas senhas não são iguais. Digite de novo."; senha2.value = ""; senha2.focus(); return; }
       erro.textContent = "";
       criar.disabled = true;
-      A.criarConta({ email: d.email, senha: senha.value, convite: d.convite, nome: nome.value.trim(), cargo: cargo.value.trim() }).then(function () {
+      A.criarConta({ email: d.email, senha: senha.value, convite: d.convite, nome: nome.value.trim(), cargo: cargo.value.trim() }).then(function (r) {
+        if (r && r.confirmar) {
+          pa.passo = 3;
+          renderizar();
+          return;
+        }
         estado.primeiroAcesso = null;
         U.aviso("Conta criada. Bem-vindo ao painel!");
       }, function (err) {
@@ -221,14 +287,93 @@
         }
         erro.textContent = code === "ja_existe"
           ? "Já existe uma conta com este e-mail. Volte e entre pelo login normal."
-          : code === "senha_fraca"
-            ? "Senha fraca demais. Use mais caracteres, misturando letras e números."
-            : code === "fechado"
-              ? "O primeiro acesso está fechado no momento. Fale com a diretoria."
-              : "Não foi possível criar a conta agora. Confira a internet e tente de novo.";
+          : msgSenha(code) || (code === "fechado"
+            ? "O primeiro acesso está fechado no momento. Fale com a diretoria."
+            : code === "espera"
+              ? "Muitas tentativas seguidas. Espere alguns minutos e tente de novo."
+              : code === "envio"
+                ? "O site não conseguiu enviar o código para este e-mail. Fale com a diretoria."
+                : "Não foi possível criar a conta agora. Confira a internet e tente de novo.");
       });
     });
     setTimeout(function () { (d.nome ? senha : nome).focus(); }, 0);
+    return f2;
+  }
+
+  /* ---------- esqueci minha senha (site publicado) ----------
+     Passo 1: e-mail. Passo 2: código do e-mail e a nova senha (duas vezes). */
+  function formRecuperar(erro) {
+    var rc = estado.recuperar;
+    var voltar = el("button", {
+      type: "button", class: "botao botao--discreto",
+      text: rc.passo === 1 ? "Voltar para o login" : "Corrigir o e-mail",
+      onclick: function () {
+        if (rc.passo === 1) estado.recuperar = null; else rc.passo = 1;
+        renderizar();
+      }
+    });
+
+    if (rc.passo === 1) {
+      var email = el("input", { id: "rc-email", class: "campo", type: "email", autocomplete: "email", inputmode: "email", value: rc.email || "" });
+      var enviar = el("button", { type: "submit", class: "botao", text: "Enviar código" });
+      var f1 = el("form", { class: "login__form", novalidate: true }, [
+        grupo("rc-email", "E-mail da sua conta", email, "Vamos enviar um código para você criar uma senha nova."),
+        el("div", { class: "login__acoes" }, [enviar, voltar])
+      ]);
+      f1.addEventListener("submit", function (e) {
+        e.preventDefault();
+        if (!emailValido(email.value)) { erro.textContent = "Confira o e-mail: ele não parece completo."; email.focus(); return; }
+        rc.email = email.value.trim().toLowerCase();
+        erro.textContent = "";
+        enviar.disabled = true;
+        A.pedirCodigoSenha(rc.email).then(function () {
+          rc.passo = 2;
+          renderizar();
+        }, function (err) {
+          enviar.disabled = false;
+          erro.textContent = err && err.code === "espera"
+            ? "Espere um minuto antes de pedir outro código."
+            : err && err.code === "envio"
+              ? "O site não conseguiu enviar o código para este e-mail. Fale com a diretoria."
+              : "Não foi possível enviar o código agora. Tente de novo em instantes.";
+        });
+      });
+      setTimeout(function () { email.focus(); }, 0);
+      return f1;
+    }
+
+    var codigo = campoCodigo("rc-codigo");
+    var senha = el("input", { id: "rc-senha", class: "campo", type: "password", autocomplete: "new-password" });
+    var senha2 = el("input", { id: "rc-senha2", class: "campo", type: "password", autocomplete: "new-password" });
+    var salvar = el("button", { type: "submit", class: "botao", text: "Salvar e entrar" });
+    var f2 = el("form", { class: "login__form", novalidate: true }, [
+      el("p", null, ["Se ", el("strong", { text: rc.email }), " tiver conta no site, chegou um código nele. Digite o código e crie a senha nova."]),
+      grupo("rc-codigo", "Código do e-mail", codigo, "Não chegou? Confira a caixa de spam ou peça outro código."),
+      grupo("rc-senha", "Nova senha", senha, "Pelo menos 8 caracteres."),
+      grupo("rc-senha2", "Repita a nova senha", senha2),
+      el("div", { class: "login__acoes" }, [salvar, botaoReenviar(function () { return A.pedirCodigoSenha(rc.email); }, erro), voltar])
+    ]);
+    f2.addEventListener("submit", function (e) {
+      e.preventDefault();
+      if (codigo.value.length < 6) { erro.textContent = "Digite o código completo que chegou no e-mail."; codigo.focus(); return; }
+      if (senha.value.length < 8) { erro.textContent = "A senha precisa ter pelo menos 8 caracteres."; senha.focus(); return; }
+      if (senha.value !== senha2.value) { erro.textContent = "As duas senhas não são iguais. Digite de novo."; senha2.value = ""; senha2.focus(); return; }
+      erro.textContent = "";
+      salvar.disabled = true;
+      A.redefinirSenha(rc.email, codigo.value, senha.value).then(function () {
+        estado.recuperar = null;
+        U.aviso("Senha nova salva.");
+      }, function (err) {
+        salvar.disabled = false;
+        var code = err && err.code;
+        erro.textContent = code === "codigo"
+          ? "Código errado ou vencido. Confira o e-mail mais recente ou peça outro código."
+          : msgSenha(code) || (code === "sem_permissao"
+            ? "Esta conta não está na lista de diretores."
+            : "Não foi possível salvar agora. Tente de novo em instantes.");
+      });
+    });
+    setTimeout(function () { codigo.focus(); }, 0);
     return f2;
   }
 

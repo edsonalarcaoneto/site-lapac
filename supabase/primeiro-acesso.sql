@@ -3,10 +3,10 @@
 -- Rode depois de configurar.sql, uma vez: SQL Editor → New query → colar → Run.
 --
 -- Como funciona:
--- - No site, aba Login → "Primeiro acesso", o diretor informa o e-mail (duas vezes),
---   a senha padrão, o nome, o cargo e a nova senha (duas vezes).
--- - A conta só é criada se a senha padrão estiver certa. O diretor entra na lista
---   de diretores na mesma hora, e a senha padrão não fica guardada na conta dele.
+-- - No site, aba Login → "Primeiro acesso", o diretor informa o e-mail, a senha padrão,
+--   o nome, o cargo e a nova senha (duas vezes), e depois o código que chega no e-mail.
+-- - A conta só é criada se a senha padrão estiver certa, e o diretor só entra na lista
+--   de diretores quando confirma o e-mail. A senha padrão não fica guardada na conta dele.
 -- - A senha padrão fica guardada só como hash (embaralhada), nunca no código do site.
 --
 -- Para definir ou trocar a senha padrão (rode você mesmo, no SQL Editor):
@@ -45,7 +45,27 @@ end;
 $$;
 revoke all on function privado.definir_convite(text) from public, anon, authenticated;
 
--- Confere a senha padrão antes de criar a conta e já cadastra o diretor.
+-- Coloca o e-mail na lista de diretores, com o nome e o cargo informados no primeiro acesso.
+create or replace function privado.registrar_diretor(p_email text, p_meta jsonb)
+returns void
+language plpgsql security definer
+set search_path = ''
+as $$
+declare
+  v_nome  text := nullif(trim(p_meta ->> 'nome'), '');
+  v_cargo text := nullif(trim(p_meta ->> 'cargo'), '');
+begin
+  insert into public.diretores (email, nome, cargo)
+  values (lower(p_email), coalesce(v_nome, split_part(p_email, '@', 1)), v_cargo)
+  on conflict (email) do update
+    set nome  = excluded.nome,
+        cargo = coalesce(excluded.cargo, public.diretores.cargo);
+end;
+$$;
+revoke all on function privado.registrar_diretor(text, jsonb) from public, anon, authenticated;
+
+-- Antes de criar a conta: confere a senha padrão e tira ela dos dados da conta.
+-- Se a conta já nasce confirmada (confirmação de e-mail desligada), cadastra o diretor na hora.
 create or replace function privado.conferir_convite()
 returns trigger
 language plpgsql security definer
@@ -54,22 +74,17 @@ as $$
 declare
   h        text;
   v_codigo text := new.raw_user_meta_data ->> 'convite';
-  v_nome   text := nullif(trim(new.raw_user_meta_data ->> 'nome'), '');
-  v_cargo  text := nullif(trim(new.raw_user_meta_data ->> 'cargo'), '');
 begin
   select codigo_hash into h from privado.convite where id;
   if h is null or v_codigo is null or extensions.crypt(v_codigo, h) <> h then
     raise exception 'convite_invalido';
   end if;
 
-  -- A senha padrão não fica guardada nos dados da conta.
   new.raw_user_meta_data := new.raw_user_meta_data - 'convite';
 
-  insert into public.diretores (email, nome, cargo)
-  values (lower(new.email), coalesce(v_nome, split_part(new.email, '@', 1)), v_cargo)
-  on conflict (email) do update
-    set nome  = excluded.nome,
-        cargo = coalesce(excluded.cargo, public.diretores.cargo);
+  if new.email_confirmed_at is not null then
+    perform privado.registrar_diretor(new.email, new.raw_user_meta_data);
+  end if;
   return new;
 end;
 $$;
@@ -79,3 +94,24 @@ drop trigger if exists conferir_convite on auth.users;
 create trigger conferir_convite
   before insert on auth.users
   for each row execute function privado.conferir_convite();
+
+-- Quando o diretor confirma o e-mail com o código, ele entra na lista de diretores.
+-- Assim, um e-mail digitado errado nunca chega à lista.
+create or replace function privado.diretor_confirmado()
+returns trigger
+language plpgsql security definer
+set search_path = ''
+as $$
+begin
+  perform privado.registrar_diretor(new.email, new.raw_user_meta_data);
+  return new;
+end;
+$$;
+revoke all on function privado.diretor_confirmado() from public, anon, authenticated;
+
+drop trigger if exists diretor_confirmado on auth.users;
+create trigger diretor_confirmado
+  after update on auth.users
+  for each row
+  when (old.email_confirmed_at is null and new.email_confirmed_at is not null)
+  execute function privado.diretor_confirmado();

@@ -15,11 +15,13 @@ Rode uma vez só: rodar de novo dá erro de "already exists", sem estragar nada.
 ## 2. Primeiro acesso com senha padrão (feito uma vez)
 
 1. **SQL Editor → New query**, cole o conteúdo de `primeiro-acesso.sql` e clique em **Run**.
-2. Em **Authentication → Sign In / Providers**:
-   - **Allow new users to sign up**: ligado (a senha padrão é que barra quem não é diretor);
-   - **Confirm email**: desligado (o plano gratuito não entrega e-mails aos diretores).
-   Clique em **Save changes**.
-3. Defina a senha padrão no **SQL Editor** (só você digita; ela fica guardada embaralhada):
+2. Em **Authentication → Sign In / Providers**: **Allow new users to sign up** ligado e
+   **Confirm email** ligado. Clique em **Save changes**. Quem barra quem não é diretor é a
+   senha padrão; a confirmação garante que o e-mail digitado é mesmo da pessoa.
+3. Troque os modelos de e-mail para mostrar o código: veja `modelos-de-email.md`.
+4. Ligue um serviço de envio (SMTP) com o domínio `lapac.space`: também em
+   `modelos-de-email.md`. Sem isso, os códigos só chegam aos e-mails da equipe do Supabase.
+5. Defina a senha padrão no **SQL Editor** (só você digita; ela fica guardada embaralhada):
 
    ```sql
    select privado.definir_convite('a senha padrão aqui');
@@ -29,12 +31,12 @@ Rode uma vez só: rodar de novo dá erro de "already exists", sem estragar nada.
 
 1. Você passa a senha padrão ao diretor em particular (nunca em grupo nem no código do site).
 2. No site, aba **Login → Primeiro acesso**:
-   - passo 1: e-mail, o mesmo e-mail de novo e a senha padrão;
-   - passo 2: nome, cargo, a nova senha e a nova senha de novo.
-3. Se os e-mails ou as senhas não baterem, a conta não é criada. Se a senha padrão estiver
-   errada, a conta também não é criada.
-4. Com tudo certo, a conta nasce já na lista de diretores e o painel abre na hora.
-   Depois, cada um troca a própria senha no botão **Trocar senha** do painel.
+   - passo 1: e-mail e senha padrão;
+   - passo 2: nome, cargo, a nova senha e a nova senha de novo;
+   - passo 3: o código que chega no e-mail.
+3. Se as senhas não baterem ou a senha padrão estiver errada, a conta não é criada.
+4. Só depois do código o diretor entra na lista de diretores e o painel abre. Um e-mail
+   digitado errado nunca chega à lista.
 
 Quando todos tiverem criado a conta, desligue o primeiro acesso:
 
@@ -42,7 +44,7 @@ Quando todos tiverem criado a conta, desligue o primeiro acesso:
 select privado.definir_convite(null);
 ```
 
-Para a próxima gestão, defina uma senha padrão nova com o mesmo comando do passo 2.3.
+Para a próxima gestão, defina uma senha padrão nova com o mesmo comando do passo 2.5.
 
 Quem tem conta mas não está na lista de diretores é desconectado na hora e não publica nada.
 Os e-mails dos diretores ficam só no Supabase, nunca no código (o repositório é público).
@@ -59,10 +61,8 @@ Depois, apague a conta em **Authentication → Users**.
 
 ## Senha esquecida
 
-O plano gratuito só envia e-mails para quem é membro da organização no Supabase, então o
-"esqueci a senha" por e-mail não chega aos demais diretores. Quando alguém esquecer a senha,
-apague a conta dele em **Authentication → Users** e deixe o primeiro acesso ligado para ele
-criar de novo (a linha na lista de diretores continua valendo).
+Na aba **Login**, o botão **Esqueci minha senha** envia um código ao e-mail; com ele, o diretor
+cria uma senha nova. Depende do serviço de envio do passo 2.4.
 
 Contas criadas pelo botão **Add user** do painel do Supabase são barradas pela regra da senha
 padrão; use sempre o **Primeiro acesso** do site.

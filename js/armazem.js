@@ -255,8 +255,29 @@
     return Promise.resolve();
   };
 
+  /* Traduz as mensagens do Supabase (em inglês) para códigos que o painel entende. */
+  function codigoDoErro(erro) {
+    var m = String((erro && erro.message) || "").toLowerCase();
+    if (m.indexOf("rate limit") >= 0 || m.indexOf("security purposes") >= 0 || m.indexOf("too many") >= 0) return "espera";
+    if (m.indexOf("sending") >= 0 || m.indexOf("not authorized") >= 0) return "envio";
+    if (m.indexOf("already") >= 0 || m.indexOf("registered") >= 0) return "ja_existe";
+    if (m.indexOf("database error") >= 0 || m.indexOf("convite") >= 0) return "convite";
+    if (m.indexOf("signup") >= 0 || m.indexOf("signups") >= 0) return "fechado";
+    if (m.indexOf("different") >= 0) return "senha_igual";
+    if (m.indexOf("weak") >= 0 || m.indexOf("at least") >= 0 || m.indexOf("password should") >= 0) return "senha_fraca";
+    if (m.indexOf("expired") >= 0 || m.indexOf("invalid") >= 0 || m.indexOf("token") >= 0 || m.indexOf("otp") >= 0) return "codigo";
+    return "rede";
+  }
+  function entrarComSessao(sessao) {
+    return definirSessaoSupabase(sessao).then(function () {
+      avisar("sessao");
+      return carregarSupabase();
+    });
+  }
+
   /* Primeiro acesso: cria a conta do diretor. O servidor só aceita com a senha padrão certa
-     (supabase/primeiro-acesso.sql) e já coloca o e-mail na lista de diretores. */
+     (supabase/primeiro-acesso.sql). Com a confirmação de e-mail ligada no Supabase, a conta
+     só fica ativa depois do código enviado ao e-mail: devolve { confirmar: true }. */
   A.criarConta = function (d) {
     if (A.modo !== "supabase") return Promise.reject({ code: "sem_servidor" });
     var email = String(d.email || "").trim().toLowerCase();
@@ -265,20 +286,64 @@
       password: String(d.senha || ""),
       options: { data: { convite: String(d.convite || ""), nome: d.nome || "", cargo: d.cargo || "" } }
     }).then(function (r) {
-      if (r.error) {
-        var msg = String(r.error.message || "").toLowerCase();
-        if (msg.indexOf("already") >= 0 || msg.indexOf("registered") >= 0 || msg.indexOf("exists") >= 0) throw { code: "ja_existe" };
-        if (msg.indexOf("database error") >= 0 || msg.indexOf("convite") >= 0) throw { code: "convite" };
-        if (msg.indexOf("signup") >= 0 || msg.indexOf("not allowed") >= 0) throw { code: "fechado" };
-        if (msg.indexOf("password") >= 0 || msg.indexOf("weak") >= 0) throw { code: "senha_fraca" };
-        throw { code: "rede" };
-      }
+      if (r.error) throw { code: codigoDoErro(r.error) };
       var sessao = r.data && r.data.session;
+      if (sessao) return entrarComSessao(sessao).then(function () { return { confirmar: false }; });
+      var user = r.data && r.data.user;
+      /* O Supabase devolve um usuário sem identidades quando o e-mail já tem conta confirmada. */
+      if (user && Array.isArray(user.identities) && user.identities.length === 0) throw { code: "ja_existe" };
+      return { confirmar: true };
+    });
+  };
+
+  A.confirmarEmail = function (email, codigo) {
+    if (A.modo !== "supabase") return Promise.reject({ code: "sem_servidor" });
+    return sb.auth.verifyOtp({ email: String(email).trim().toLowerCase(), token: String(codigo).trim(), type: "signup" }).then(function (r) {
+      if (r.error || !r.data || !r.data.session) throw { code: r.error ? codigoDoErro(r.error) : "codigo" };
+      return entrarComSessao(r.data.session);
+    });
+  };
+
+  A.reenviarCodigo = function (email) {
+    if (A.modo !== "supabase") return Promise.reject({ code: "sem_servidor" });
+    return sb.auth.resend({ type: "signup", email: String(email).trim().toLowerCase() }).then(function (r) {
+      if (r.error) throw { code: codigoDoErro(r.error) };
+    });
+  };
+
+  /* Esqueci minha senha: código por e-mail e senha nova. */
+  var recuperando = null; /* e-mail cujo código já foi aceito, caso a troca da senha precise ser repetida */
+  A.pedirCodigoSenha = function (email) {
+    if (A.modo !== "supabase") return Promise.reject({ code: "sem_servidor" });
+    recuperando = null;
+    return sb.auth.resetPasswordForEmail(String(email).trim().toLowerCase()).then(function (r) {
+      /* Por segurança, não contamos se o e-mail tem conta; só o limite de envios aparece. */
+      var c = r.error ? codigoDoErro(r.error) : "";
+      if (c === "espera" || c === "envio") throw { code: c };
+    });
+  };
+
+  A.redefinirSenha = function (email, codigo, senha) {
+    if (A.modo !== "supabase") return Promise.reject({ code: "sem_servidor" });
+    email = String(email).trim().toLowerCase();
+    var passo = recuperando === email ? Promise.resolve() :
+      sb.auth.verifyOtp({ email: email, token: String(codigo).trim(), type: "recovery" }).then(function (r) {
+        if (r.error || !r.data || !r.data.session) throw { code: r.error ? codigoDoErro(r.error) : "codigo" };
+        recuperando = email;
+      });
+    return passo.then(function () {
+      return sb.auth.updateUser({ password: String(senha || "") });
+    }).then(function (r) {
+      if (r.error) {
+        var c = codigoDoErro(r.error);
+        throw { code: c === "codigo" ? "rede" : c };
+      }
+      recuperando = null;
+      return sb.auth.getSession();
+    }).then(function (r) {
+      var sessao = r && r.data && r.data.session;
       if (!sessao) throw { code: "rede" };
-      return definirSessaoSupabase(sessao);
-    }).then(function () {
-      avisar("sessao");
-      return carregarSupabase();
+      return entrarComSessao(sessao);
     });
   };
 

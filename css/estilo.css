@@ -872,6 +872,8 @@ a.tubo:focus-visible { outline-offset: 6px; border-radius: 8px; }
 .login__cartao { gap: 16px; }
 .login__form { display: grid; gap: 14px; }
 .login__form .botao { justify-self: start; }
+.login__acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; }
+.campo--codigo { font-family: var(--f-rotulo); font-size: 1.5rem; letter-spacing: .3em; max-width: 14ch; }
 .login__primeiro { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding-top: 16px; border-top: 1px solid var(--linha, rgba(0,0,0,.12)); }
 .login__primeiro .campo-ajuda { margin: 0; }
 .login__lado { display: grid; gap: 14px; padding: 8px 4px; }
