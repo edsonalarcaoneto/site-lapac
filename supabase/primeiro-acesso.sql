@@ -4,7 +4,7 @@
 --
 -- Como funciona:
 -- - No site, aba Login → "Primeiro acesso", o diretor informa o e-mail, a senha padrão,
---   o nome, o cargo e a nova senha (duas vezes), e depois o código que chega no e-mail.
+--   o nome, o cargo e a nova senha (duas vezes), e depois toca no link que chega no e-mail.
 -- - A conta só é criada se a senha padrão estiver certa, e o diretor só entra na lista
 --   de diretores quando confirma o e-mail. A senha padrão não fica guardada na conta dele.
 -- - A senha padrão fica guardada só como hash (embaralhada), nunca no código do site.
@@ -95,7 +95,7 @@ create trigger conferir_convite
   before insert on auth.users
   for each row execute function privado.conferir_convite();
 
--- Quando o diretor confirma o e-mail com o código, ele entra na lista de diretores.
+-- Quando o diretor confirma o e-mail pelo link, ele entra na lista de diretores.
 -- Assim, um e-mail digitado errado nunca chega à lista.
 create or replace function privado.diretor_confirmado()
 returns trigger

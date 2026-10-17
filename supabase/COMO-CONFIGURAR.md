@@ -18,9 +18,9 @@ Rode uma vez só: rodar de novo dá erro de "already exists", sem estragar nada.
 2. Em **Authentication → Sign In / Providers**: **Allow new users to sign up** ligado e
    **Confirm email** ligado. Clique em **Save changes**. Quem barra quem não é diretor é a
    senha padrão; a confirmação garante que o e-mail digitado é mesmo da pessoa.
-3. Troque os modelos de e-mail para mostrar o código: veja `modelos-de-email.md`.
-4. Ligue um serviço de envio (SMTP) com o domínio `lapac.space`: também em
-   `modelos-de-email.md`. Sem isso, os códigos só chegam aos e-mails da equipe do Supabase.
+3. Ligue um serviço de envio (SMTP) com o domínio `lapac.space`: veja `modelos-de-email.md`.
+   Sem isso, os e-mails só chegam a quem é da equipe do Supabase.
+4. Troque os modelos de e-mail pelos textos em português de `modelos-de-email.md`.
 5. Defina a senha padrão no **SQL Editor** (só você digita; ela fica guardada embaralhada):
 
    ```sql
@@ -33,9 +33,9 @@ Rode uma vez só: rodar de novo dá erro de "already exists", sem estragar nada.
 2. No site, aba **Login → Primeiro acesso**:
    - passo 1: e-mail e senha padrão;
    - passo 2: nome, cargo, a nova senha e a nova senha de novo;
-   - passo 3: o código que chega no e-mail.
+   - passo 3: tocar no link que chega no e-mail.
 3. Se as senhas não baterem ou a senha padrão estiver errada, a conta não é criada.
-4. Só depois do código o diretor entra na lista de diretores e o painel abre. Um e-mail
+4. Só depois do link o diretor entra na lista de diretores e o painel abre. Um e-mail
    digitado errado nunca chega à lista.
 
 Quando todos tiverem criado a conta, desligue o primeiro acesso:
@@ -61,8 +61,8 @@ Depois, apague a conta em **Authentication → Users**.
 
 ## Senha esquecida
 
-Na aba **Login**, o botão **Esqueci minha senha** envia um código ao e-mail; com ele, o diretor
-cria uma senha nova. Depende do serviço de envio do passo 2.4.
+Na aba **Login**, o botão **Esqueci minha senha** envia um link ao e-mail; o link abre o site
+pedindo a senha nova. Depende do serviço de envio do passo 2.3.
 
 Contas criadas pelo botão **Add user** do painel do Supabase são barradas pela regra da senha
 padrão; use sempre o **Primeiro acesso** do site.

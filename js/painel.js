@@ -16,7 +16,7 @@
   var TIPOS_PRODUCAO = ["Artigo", "Resumo em congresso", "Pôster", "Apresentação oral"];
   var TIPOS_ATIVIDADE = ["Extensão", "Ensino", "Pesquisa", "Evento científico", "Outra"];
 
-  var estado = { aba: "aulas", editando: null, confirmarRemocao: null, trocandoSenha: false, primeiroAcesso: null, recuperar: null, avisoLogin: null, retornoTratado: false };
+  var estado = { aba: "aulas", editando: null, confirmarRemocao: null, trocandoSenha: false, primeiroAcesso: null, recuperar: null, avisoLogin: null, retornoTratado: false, emailLogin: null };
   var raiz = el("div", { class: "envoltorio pagina-corpo painel-raiz" });
 
   App.painel = {
@@ -92,7 +92,8 @@
     } else if (A.modo === "supabase" && estado.recuperar) {
       conteudo.push(formRecuperar(erro));
     } else if (A.modo === "supabase") {
-      var email = el("input", { id: "login-email", class: "campo", type: "email", autocomplete: "username", inputmode: "email", placeholder: "seu.email@exemplo.com" });
+      var email = el("input", { id: "login-email", class: "campo", type: "email", autocomplete: "username", inputmode: "email", placeholder: "seu.email@exemplo.com", value: estado.emailLogin || "" });
+      estado.emailLogin = null;
       var senha = el("input", { id: "login-senha", class: "campo", type: "password", autocomplete: "current-password" });
       var botaoEntrar = el("button", { type: "submit", class: "botao", text: "Entrar" });
       var form = el("form", { class: "login__form", novalidate: true }, [
@@ -188,18 +189,13 @@
   /* ---------- primeiro acesso (site publicado) ----------
      Passo 1: e-mail e senha padrão recebida da diretoria.
      Passo 2: nome, cargo e a nova senha (duas vezes). O servidor confere a senha padrão
-     (ver supabase/primeiro-acesso.sql) e envia um código ao e-mail.
-     Passo 3: o código do e-mail, que confirma o endereço e ativa a conta. */
+     (ver supabase/primeiro-acesso.sql) e envia um e-mail de confirmação.
+     Passo 3: aviso para tocar no link do e-mail, que confirma o endereço e ativa a conta. */
   function grupo(id, rotulo, controle, ajuda) {
     return el("label", { class: "campo-grupo", for: id }, [el("span", { class: "campo-rotulo", text: rotulo }), controle]
       .concat(ajuda ? [el("span", { class: "campo-ajuda", text: ajuda })] : []));
   }
   function emailValido(a) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a.trim()); }
-  function campoCodigo(id) {
-    var c = el("input", { id: id, class: "campo campo--codigo", type: "text", inputmode: "numeric", autocomplete: "one-time-code", maxlength: "10", placeholder: "000000" });
-    c.addEventListener("input", function () { c.value = c.value.replace(/\D/g, ""); });
-    return c;
-  }
   function msgSenha(code) {
     return code === "senha_fraca" ? "Senha fraca demais. Use mais caracteres, misturando letras e números."
       : code === "senha_igual" ? "A nova senha precisa ser diferente da atual."
@@ -215,9 +211,9 @@
       }, function (err) {
         b.disabled = false;
         erro.textContent = err && err.code === "espera"
-          ? "Espere um minuto antes de pedir outro código."
+          ? "Espere um minuto antes de pedir outro e-mail."
           : err && err.code === "envio"
-            ? "O site não conseguiu enviar o código para este e-mail. Fale com a diretoria."
+            ? "O site não conseguiu enviar o e-mail para este endereço. Fale com a diretoria."
             : "Não foi possível reenviar agora. Tente de novo em instantes.";
       });
     });
@@ -241,7 +237,7 @@
       var convite = el("input", { id: "pa-convite", class: "campo", type: "password", autocomplete: "off", value: d.convite || "" });
       var f1 = el("form", { class: "login__form", novalidate: true }, [
         el("p", { class: "texto-suave", text: "Passo 1 de 3" }),
-        grupo("pa-email", "Seu e-mail", email, "Você vai receber um código neste e-mail para confirmar que ele está certo."),
+        grupo("pa-email", "Seu e-mail", email, "Você vai receber um link neste e-mail para confirmar que ele está certo."),
         grupo("pa-convite", "Senha padrão", convite, "A senha que a diretoria passou para o primeiro acesso."),
         el("div", { class: "login__acoes" }, [el("button", { type: "submit", class: "botao", text: "Continuar" }), voltar])
       ]);
@@ -259,32 +255,17 @@
     }
 
     if (pa.passo === 3) {
-      var codigo = campoCodigo("pa-codigo");
-      var confirmar = el("button", { type: "submit", class: "botao", text: "Confirmar e entrar" });
-      var f3 = el("form", { class: "login__form", novalidate: true }, [
-        el("p", { class: "texto-suave", text: "Passo 3 de 3" }),
-        el("p", null, ["Enviamos um e-mail para ", el("strong", { text: d.email }), ". Se ele trouxer um link de confirmação, toque no link: a conta é ativada e o painel abre. Se trouxer um código, digite-o abaixo."]),
-        grupo("pa-codigo", "Código do e-mail", codigo, "Não chegou? Confira a caixa de spam ou peça outro e-mail."),
-        el("div", { class: "login__acoes" }, [confirmar, botaoReenviar(function () { return A.reenviarCodigo(d.email); }, erro), voltar])
-      ]);
-      f3.addEventListener("submit", function (e) {
-        e.preventDefault();
-        if (codigo.value.length < 6) { erro.textContent = "Digite o código completo que chegou no e-mail."; codigo.focus(); return; }
-        erro.textContent = "";
-        confirmar.disabled = true;
-        A.confirmarEmail(d.email, codigo.value).then(function () {
-          estado.primeiroAcesso = null;
-          U.aviso("E-mail confirmado. Bem-vindo ao painel!");
-        }, function (err) {
-          confirmar.disabled = false;
-          erro.textContent = err && err.code === "codigo"
-            ? "Código errado ou vencido. Confira o e-mail mais recente ou peça outro código."
-            : err && err.code === "sem_permissao"
-              ? "A conta foi confirmada, mas não está na lista de diretores. Fale com a diretoria."
-              : "Não foi possível confirmar agora. Confira a internet e tente de novo.";
-        });
+      var jaConfirmei = el("button", {
+        type: "button", class: "botao", text: "Já confirmei, entrar",
+        onclick: function () { estado.emailLogin = d.email; estado.primeiroAcesso = null; renderizar(); }
       });
-      setTimeout(function () { codigo.focus(); }, 0);
+      var f3 = el("div", { class: "login__form" }, [
+        el("p", { class: "texto-suave", text: "Passo 3 de 3" }),
+        el("p", null, ["Enviamos um e-mail de confirmação para ", el("strong", { text: d.email }), "."]),
+        el("p", { text: "Abra o e-mail e toque no link de confirmação. A conta é ativada e o site abre já no painel." }),
+        el("p", { class: "campo-ajuda", text: "Não chegou em alguns minutos? Confira a caixa de spam ou reenvie. Se o e-mail estiver errado, corrija e faça de novo." }),
+        el("div", { class: "login__acoes" }, [jaConfirmei, botaoReenviar(function () { return A.reenviarCodigo(d.email); }, erro), voltar])
+      ]);
       return f3;
     }
 
@@ -337,7 +318,7 @@
             : code === "espera"
               ? "Muitas tentativas seguidas. Espere alguns minutos e tente de novo."
               : code === "envio"
-                ? "O site não conseguiu enviar o código para este e-mail. Fale com a diretoria."
+                ? "O site não conseguiu enviar o e-mail de confirmação. Fale com a diretoria."
                 : "Não foi possível criar a conta agora. Confira a internet e tente de novo.");
       });
     });
@@ -346,7 +327,7 @@
   }
 
   /* ---------- esqueci minha senha (site publicado) ----------
-     Passo 1: e-mail. Passo 2: código do e-mail e a nova senha (duas vezes). */
+     Passo 1: e-mail. Passo 2: aviso para tocar no link do e-mail, que abre o site pedindo a senha nova. */
   function formRecuperar(erro) {
     var rc = estado.recuperar;
     var voltar = el("button", {
@@ -360,9 +341,9 @@
 
     if (rc.passo === 1) {
       var email = el("input", { id: "rc-email", class: "campo", type: "email", autocomplete: "email", inputmode: "email", value: rc.email || "" });
-      var enviar = el("button", { type: "submit", class: "botao", text: "Enviar código" });
+      var enviar = el("button", { type: "submit", class: "botao", text: "Enviar e-mail" });
       var f1 = el("form", { class: "login__form", novalidate: true }, [
-        grupo("rc-email", "E-mail da sua conta", email, "Vamos enviar um código para você criar uma senha nova."),
+        grupo("rc-email", "E-mail da sua conta", email, "Vamos enviar um link para você criar uma senha nova."),
         el("div", { class: "login__acoes" }, [enviar, voltar])
       ]);
       f1.addEventListener("submit", function (e) {
@@ -377,49 +358,25 @@
         }, function (err) {
           enviar.disabled = false;
           erro.textContent = err && err.code === "espera"
-            ? "Espere um minuto antes de pedir outro código."
+            ? "Espere um minuto antes de pedir outro e-mail."
             : err && err.code === "envio"
-              ? "O site não conseguiu enviar o código para este e-mail. Fale com a diretoria."
-              : "Não foi possível enviar o código agora. Tente de novo em instantes.";
+              ? "O site não conseguiu enviar o e-mail para este endereço. Fale com a diretoria."
+              : "Não foi possível enviar o e-mail agora. Tente de novo em instantes.";
         });
       });
       setTimeout(function () { email.focus(); }, 0);
       return f1;
     }
 
-    var codigo = campoCodigo("rc-codigo");
-    var senha = el("input", { id: "rc-senha", class: "campo", type: "password", autocomplete: "new-password" });
-    var senha2 = el("input", { id: "rc-senha2", class: "campo", type: "password", autocomplete: "new-password" });
-    var salvar = el("button", { type: "submit", class: "botao", text: "Salvar e entrar" });
-    var f2 = el("form", { class: "login__form", novalidate: true }, [
-      el("p", null, ["Se ", el("strong", { text: rc.email }), " tiver conta no site, chegou um e-mail nele. Se o e-mail trouxer um link, toque no link: o site abre pedindo a senha nova. Se trouxer um código, digite-o abaixo com a senha nova."]),
-      grupo("rc-codigo", "Código do e-mail", codigo, "Não chegou? Confira a caixa de spam ou peça outro código."),
-      grupo("rc-senha", "Nova senha", senha, "Pelo menos 8 caracteres."),
-      grupo("rc-senha2", "Repita a nova senha", senha2),
-      el("div", { class: "login__acoes" }, [salvar, botaoReenviar(function () { return A.pedirCodigoSenha(rc.email); }, erro), voltar])
+    return el("div", { class: "login__form" }, [
+      el("p", null, ["Se ", el("strong", { text: rc.email }), " tiver conta no site, enviamos um e-mail para ele."]),
+      el("p", { text: "Abra o e-mail e toque no link. O site abre já pedindo a senha nova." }),
+      el("p", { class: "campo-ajuda", text: "Não chegou em alguns minutos? Confira a caixa de spam ou reenvie." }),
+      el("div", { class: "login__acoes" }, [
+        botaoReenviar(function () { return A.pedirCodigoSenha(rc.email); }, erro),
+        el("button", { type: "button", class: "botao botao--discreto", text: "Voltar para o login", onclick: function () { estado.emailLogin = rc.email; estado.recuperar = null; renderizar(); } })
+      ])
     ]);
-    f2.addEventListener("submit", function (e) {
-      e.preventDefault();
-      if (codigo.value.length < 6) { erro.textContent = "Digite o código completo que chegou no e-mail."; codigo.focus(); return; }
-      if (senha.value.length < 8) { erro.textContent = "A senha precisa ter pelo menos 8 caracteres."; senha.focus(); return; }
-      if (senha.value !== senha2.value) { erro.textContent = "As duas senhas não são iguais. Digite de novo."; senha2.value = ""; senha2.focus(); return; }
-      erro.textContent = "";
-      salvar.disabled = true;
-      A.redefinirSenha(rc.email, codigo.value, senha.value).then(function () {
-        estado.recuperar = null;
-        U.aviso("Senha nova salva.");
-      }, function (err) {
-        salvar.disabled = false;
-        var code = err && err.code;
-        erro.textContent = code === "codigo"
-          ? "Código errado ou vencido. Confira o e-mail mais recente ou peça outro código."
-          : msgSenha(code) || (code === "sem_permissao"
-            ? "Esta conta não está na lista de diretores."
-            : "Não foi possível salvar agora. Tente de novo em instantes.");
-      });
-    });
-    setTimeout(function () { codigo.focus(); }, 0);
-    return f2;
   }
 
   /* ---------- painel ---------- */
