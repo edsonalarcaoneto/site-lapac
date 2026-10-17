@@ -16,7 +16,7 @@
   var TIPOS_PRODUCAO = ["Artigo", "Resumo em congresso", "Pôster", "Apresentação oral"];
   var TIPOS_ATIVIDADE = ["Extensão", "Ensino", "Pesquisa", "Evento científico", "Outra"];
 
-  var estado = { aba: "aulas", editando: null, confirmarRemocao: null, trocandoSenha: false, primeiroAcesso: null };
+  var estado = { aba: "aulas", editando: null, confirmarRemocao: null, trocandoSenha: false, primeiroAcesso: null, recuperar: null, avisoLogin: null, retornoTratado: false };
   var raiz = el("div", { class: "envoltorio pagina-corpo painel-raiz" });
 
   App.painel = {
@@ -32,8 +32,24 @@
   App.paginas.login = App.painel.pagina;
 
   function renderizar() {
+    tratarRetornoEmail();
     raiz.replaceChildren(A.sessao ? painel() : login());
     olhosNasSenhas(raiz);
+  }
+
+  /* Quem chega pelo link de um e-mail do Supabase (confirmação ou senha nova). */
+  function tratarRetornoEmail() {
+    var r = A.retornoEmail;
+    if (!r || !A.pronto || estado.retornoTratado) return;
+    estado.retornoTratado = true;
+    if (r.erro) {
+      estado.avisoLogin = "O link do e-mail venceu ou já foi usado. Entre com o seu e-mail e senha ou peça um novo.";
+    } else if (A.sessao && r.tipo === "recovery") {
+      estado.trocandoSenha = true;
+      U.aviso("Crie agora a sua senha nova.");
+    } else if (A.sessao) {
+      U.aviso("E-mail confirmado. Bem-vindo ao painel!");
+    }
   }
 
   /* Botão "Mostrar" em todo campo de senha, para conferir o que foi digitado. */
@@ -59,7 +75,8 @@
 
   /* ---------- login ---------- */
   function login() {
-    var erro = el("p", { class: "erro", role: "alert" });
+    var erro = el("p", { class: "erro", role: "alert", text: estado.avisoLogin || "" });
+    estado.avisoLogin = null;
     var conteudo = [];
 
     if (!A.pronto) {
@@ -183,11 +200,11 @@
         : null;
   }
   function botaoReenviar(fn, erro) {
-    var b = el("button", { type: "button", class: "botao botao--discreto", text: "Reenviar o código" });
+    var b = el("button", { type: "button", class: "botao botao--discreto", text: "Reenviar o e-mail" });
     b.addEventListener("click", function () {
       b.disabled = true;
       fn().then(function () {
-        U.aviso("Código reenviado. Confira também a caixa de spam.");
+        U.aviso("E-mail reenviado. Confira também a caixa de spam.");
         setTimeout(function () { b.disabled = false; }, 60000);
       }, function (err) {
         b.disabled = false;
@@ -240,8 +257,8 @@
       var confirmar = el("button", { type: "submit", class: "botao", text: "Confirmar e entrar" });
       var f3 = el("form", { class: "login__form", novalidate: true }, [
         el("p", { class: "texto-suave", text: "Passo 3 de 3" }),
-        el("p", null, ["Enviamos um código para ", el("strong", { text: d.email }), ". Digite-o abaixo para confirmar o e-mail e ativar a sua conta."]),
-        grupo("pa-codigo", "Código do e-mail", codigo, "Não chegou? Confira a caixa de spam ou peça outro código."),
+        el("p", null, ["Enviamos um e-mail para ", el("strong", { text: d.email }), ". Se ele trouxer um link de confirmação, toque no link: a conta é ativada e o painel abre. Se trouxer um código, digite-o abaixo."]),
+        grupo("pa-codigo", "Código do e-mail", codigo, "Não chegou? Confira a caixa de spam ou peça outro e-mail."),
         el("div", { class: "login__acoes" }, [confirmar, botaoReenviar(function () { return A.reenviarCodigo(d.email); }, erro), voltar])
       ]);
       f3.addEventListener("submit", function (e) {
@@ -369,7 +386,7 @@
     var senha2 = el("input", { id: "rc-senha2", class: "campo", type: "password", autocomplete: "new-password" });
     var salvar = el("button", { type: "submit", class: "botao", text: "Salvar e entrar" });
     var f2 = el("form", { class: "login__form", novalidate: true }, [
-      el("p", null, ["Se ", el("strong", { text: rc.email }), " tiver conta no site, chegou um código nele. Digite o código e crie a senha nova."]),
+      el("p", null, ["Se ", el("strong", { text: rc.email }), " tiver conta no site, chegou um e-mail nele. Se o e-mail trouxer um link, toque no link: o site abre pedindo a senha nova. Se trouxer um código, digite-o abaixo com a senha nova."]),
       grupo("rc-codigo", "Código do e-mail", codigo, "Não chegou? Confira a caixa de spam ou peça outro código."),
       grupo("rc-senha", "Nova senha", senha, "Pelo menos 8 caracteres."),
       grupo("rc-senha2", "Repita a nova senha", senha2),

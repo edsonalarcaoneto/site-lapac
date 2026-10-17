@@ -106,6 +106,8 @@
     var h = "";
     try { h = decodeURIComponent((location.hash || "").replace(/^#/, "")); } catch (e) { h = ""; }
     if (h === "diretoria") h = "login"; /* endereço antigo */
+    /* volta de um link de e-mail do Supabase (confirmação ou senha nova): vai para o Login */
+    if (/(^|&)(access_token|error_description|error_code)=/.test(h)) h = "login";
     return h || "inicio";
   }
 

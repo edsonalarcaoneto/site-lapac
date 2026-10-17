@@ -32,6 +32,27 @@
   var ns = { db: null, user: null, assets: null };
   var sb = null; /* cliente do Supabase */
 
+  /* Quem clica no link de um e-mail do Supabase volta ao site com os dados no endereço
+     (#access_token=...&type=signup ou type=recovery, ou #error_description=...).
+     Guardamos o tipo antes que o cliente do Supabase leia e limpe o endereço. */
+  A.retornoEmail = (function () {
+    var h = (location.hash || "").replace(/^#/, "");
+    if (!/(^|&)(access_token|error_description|error_code)=/.test(h)) return null;
+    var p = {};
+    h.split("&").forEach(function (par) {
+      var i = par.indexOf("=");
+      if (i > 0) { try { p[par.slice(0, i)] = decodeURIComponent(par.slice(i + 1).replace(/\+/g, " ")); } catch (e) { /* ignora */ } }
+    });
+    return { tipo: p.type || "", erro: p.error_code || (p.error_description ? "erro" : "") };
+  })();
+  function limparEnderecoDoEmail() {
+    if (!A.retornoEmail) return;
+    try { history.replaceState(null, "", location.pathname + location.search + "#login"); } catch (e) { /* ok */ }
+  }
+  function enderecoDeVolta() {
+    return /^https?:/.test(location.protocol) ? location.origin + location.pathname : undefined;
+  }
+
   A.aoMudar = function (fn) { A.ouvintes.push(fn); };
   function avisar(motivo) {
     A.ouvintes.forEach(function (fn) {
@@ -207,6 +228,7 @@
       inicio = Promise.resolve(iniciarLocal());
     }
     return inicio.then(function () {
+      limparEnderecoDoEmail();
       A.pronto = true;
       avisar("modo");
     });
@@ -284,7 +306,10 @@
     return sb.auth.signUp({
       email: email,
       password: String(d.senha || ""),
-      options: { data: { convite: String(d.convite || ""), nome: d.nome || "", cargo: d.cargo || "" } }
+      options: {
+        data: { convite: String(d.convite || ""), nome: d.nome || "", cargo: d.cargo || "" },
+        emailRedirectTo: enderecoDeVolta()
+      }
     }).then(function (r) {
       if (r.error) throw { code: codigoDoErro(r.error) };
       var sessao = r.data && r.data.session;
@@ -306,7 +331,7 @@
 
   A.reenviarCodigo = function (email) {
     if (A.modo !== "supabase") return Promise.reject({ code: "sem_servidor" });
-    return sb.auth.resend({ type: "signup", email: String(email).trim().toLowerCase() }).then(function (r) {
+    return sb.auth.resend({ type: "signup", email: String(email).trim().toLowerCase(), options: { emailRedirectTo: enderecoDeVolta() } }).then(function (r) {
       if (r.error) throw { code: codigoDoErro(r.error) };
     });
   };
@@ -316,7 +341,7 @@
   A.pedirCodigoSenha = function (email) {
     if (A.modo !== "supabase") return Promise.reject({ code: "sem_servidor" });
     recuperando = null;
-    return sb.auth.resetPasswordForEmail(String(email).trim().toLowerCase()).then(function (r) {
+    return sb.auth.resetPasswordForEmail(String(email).trim().toLowerCase(), { redirectTo: enderecoDeVolta() }).then(function (r) {
       /* Por segurança, não contamos se o e-mail tem conta; só o limite de envios aparece. */
       var c = r.error ? codigoDoErro(r.error) : "";
       if (c === "espera" || c === "envio") throw { code: c };
