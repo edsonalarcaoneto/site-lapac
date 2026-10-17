@@ -49,6 +49,50 @@
       .slice(0, 48) || "item";
   };
 
+  /* ---------- busca ---------- */
+  /* Tira acentos e deixa em minúsculas, caractere por caractere (as posições batem com o texto original). */
+  function semAcentoChar(c) {
+    var n = c.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    return n.length === 1 ? n : c.toLowerCase().charAt(0);
+  }
+  U.semAcento = function (texto) {
+    return Array.prototype.map.call(String(texto || ""), semAcentoChar).join("");
+  };
+  /* "Hemograma  anemia" -> ["hemograma", "anemia"] */
+  U.termosBusca = function (consulta) {
+    return U.semAcento(consulta).split(/\s+/).filter(function (t) { return t.length > 0; });
+  };
+  /* Verdadeiro se todos os termos aparecem em algum dos textos. */
+  U.combina = function (textos, termos) {
+    if (!termos.length) return true;
+    var tudo = U.semAcento(textos.filter(Boolean).join(" \u0001 "));
+    return termos.every(function (t) { return tudo.indexOf(t) >= 0; });
+  };
+  /* Devolve o texto com os termos encontrados marcados em <mark>. */
+  U.destacar = function (texto, termos) {
+    texto = String(texto || "");
+    var frag = document.createDocumentFragment();
+    if (!termos || !termos.length || !texto) { frag.appendChild(document.createTextNode(texto)); return frag; }
+    var base = U.semAcento(texto);
+    var marcas = new Array(texto.length);
+    termos.forEach(function (t) {
+      var i = base.indexOf(t);
+      while (i >= 0) {
+        for (var k = i; k < i + t.length; k++) marcas[k] = true;
+        i = base.indexOf(t, i + t.length);
+      }
+    });
+    var ini = 0;
+    for (var j = 1; j <= texto.length; j++) {
+      if (j === texto.length || !!marcas[j] !== !!marcas[ini]) {
+        var pedaco = texto.slice(ini, j);
+        frag.appendChild(marcas[ini] ? U.el("mark", { class: "achado", text: pedaco }) : document.createTextNode(pedaco));
+        ini = j;
+      }
+    }
+    return frag;
+  };
+
   U.novoId = function (titulo) {
     return U.slug(titulo) + "-" + Math.random().toString(36).slice(2, 6);
   };

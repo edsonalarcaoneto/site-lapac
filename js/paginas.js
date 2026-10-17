@@ -19,6 +19,17 @@
     ].concat(conteudo));
   }
 
+  /* O que foi digitado em cada busca continua lá quando a página é redesenhada. */
+  var buscas = {};
+
+  function buscaVazia(consulta, limpar) {
+    return el("div", { class: "busca-vazia" }, [
+      el("p", { class: "busca-vazia__titulo" }, ["Nada encontrado para ", el("strong", { text: "“" + consulta.trim() + "”" }), "."]),
+      el("p", { class: "texto-suave", text: "Confira a grafia ou tente uma palavra mais curta. A busca ignora acentos e maiúsculas." }),
+      el("button", { type: "button", class: "botao botao--contorno", text: "Limpar a busca", onclick: limpar })
+    ]);
+  }
+
   function chipsFiltro(opcoes, atual, aoEscolher) {
     return el("div", { class: "filtros", role: "group", "aria-label": "Filtrar por tipo" }, opcoes.map(function (o) {
       return el("button", {
@@ -129,19 +140,45 @@
         extra: temasEmPreparacao(publico)
       }));
     } else {
-      var grupos = {};
-      var ordem = [];
-      aulas.forEach(function (a) {
-        var g = a.area || "Outros temas";
-        if (!grupos[g]) { grupos[g] = []; ordem.push(g); }
-        grupos[g].push(a);
+      var pop = publico === "populacao";
+      var resultado = el("div", { class: "resultado-busca" });
+      var barra = C.busca({
+        rotulo: pop ? "Buscar conteúdos para a população" : "Buscar aulas para profissionais",
+        placeholder: pop ? "Buscar por exame, tema ou palavra (ex.: urina, jejum)" : "Buscar por tema, área ou palavra (ex.: hemograma, inflamação)",
+        valor: buscas[publico] || "",
+        aoBuscar: function (q) { buscas[publico] = q; desenharAulas(); }
       });
-      ordem.forEach(function (g) {
-        corpo.appendChild(el("section", { class: "grupo" }, [
-          el("h2", { class: "rotulo", text: g }),
-          el("div", { class: "grade-cartoes" }, grupos[g].map(C.cartaoAula))
-        ]));
-      });
+      var desenharAulas = function () {
+        var consulta = buscas[publico] || "";
+        var termos = U.termosBusca(consulta);
+        var achadas = aulas.filter(function (a) {
+          return U.combina([a.titulo, a.area, a.resumo, a.texto, a.ministrante], termos);
+        });
+        if (!achadas.length) {
+          resultado.replaceChildren(buscaVazia(consulta, barra.limpar));
+        } else {
+          var grupos = {};
+          var ordem = [];
+          achadas.forEach(function (a) {
+            var g = a.area || "Outros temas";
+            if (!grupos[g]) { grupos[g] = []; ordem.push(g); }
+            grupos[g].push(a);
+          });
+          resultado.replaceChildren.apply(resultado, ordem.map(function (g) {
+            return el("section", { class: "grupo" }, [
+              el("h2", { class: "rotulo", text: g }),
+              el("div", { class: "grade-cartoes" }, grupos[g].map(function (a) { return C.cartaoAula(a, termos); }))
+            ]);
+          }));
+        }
+        var n = achadas.length;
+        barra.contagem(!termos.length ? "" : pop
+          ? (n === 1 ? "1 conteúdo encontrado" : n + " conteúdos encontrados")
+          : (n === 1 ? "1 aula encontrada" : n + " aulas encontradas"));
+      };
+      desenharAulas();
+      corpo.appendChild(barra.elemento);
+      corpo.appendChild(resultado);
     }
 
     corpo.appendChild(el("aside", { class: "sugestao" }, [
@@ -267,15 +304,33 @@
     } else {
       var tipos = ["Todos"];
       todos.forEach(function (p) { if (p.tipo && tipos.indexOf(p.tipo) < 0) tipos.push(p.tipo); });
-      var grade = el("div", { class: "grade-fichas" });
+      var tipoAtual = "Todos";
+      var resultado = el("div");
       var filtros = el("div");
-      function desenhar(tipo) {
-        grade.replaceChildren.apply(grade, todos.filter(function (p) { return tipo === "Todos" || p.tipo === tipo; }).map(C.fichaProducao));
+      var barra = C.busca({
+        rotulo: "Buscar artigos e produções",
+        placeholder: "Buscar por título, autor, evento ou palavra do resumo",
+        valor: buscas.artigos || "",
+        aoBuscar: function (q) { buscas.artigos = q; desenhar(tipoAtual); }
+      });
+      var desenhar = function (tipo) {
+        tipoAtual = tipo;
+        var consulta = buscas.artigos || "";
+        var termos = U.termosBusca(consulta);
+        var achados = todos.filter(function (p) {
+          return (tipo === "Todos" || p.tipo === tipo) &&
+            U.combina([p.titulo, p.autores, p.onde, p.resumo, p.tipo, String(p.data || "").slice(0, 4)], termos);
+        });
+        resultado.replaceChildren(achados.length
+          ? el("div", { class: "grade-fichas" }, achados.map(function (p) { return C.fichaProducao(p, termos); }))
+          : (termos.length ? buscaVazia(consulta, barra.limpar) : el("p", { class: "texto-suave", text: "Nenhum trabalho deste tipo ainda." })));
         filtros.replaceChildren(tipos.length > 2 ? chipsFiltro(tipos, tipo, desenhar) : el("span"));
-      }
+        var n = achados.length;
+        barra.contagem(termos.length ? (n === 1 ? "1 trabalho encontrado" : n + " trabalhos encontrados") : "");
+      };
       desenhar("Todos");
-      corpo.appendChild(filtros);
-      corpo.appendChild(grade);
+      corpo.appendChild(el("div", { class: "ferramentas" }, [barra.elemento, tipos.length > 2 ? filtros : null]));
+      corpo.appendChild(resultado);
     }
     return el("div", { class: "pagina" }, [C.cabecalhoPagina(secao), corpo]);
   };

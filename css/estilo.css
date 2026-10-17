@@ -1112,3 +1112,51 @@ textarea.campo { resize: vertical; line-height: 1.5; }
 
 .canal__acoes { display: flex; flex-wrap: wrap; gap: 8px; }
 .canal__acoes .botao { text-decoration: none; }
+
+/* ---------- barra de busca (Artigos e aulas) ---------- */
+.ferramentas { display: grid; gap: 14px; }
+.busca { display: grid; gap: 6px; max-width: 720px; }
+.busca .busca__campo:focus, .busca .busca__campo:focus-visible { outline: none; box-shadow: none; }
+.busca__rotulo { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.busca__caixa {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 8px 4px 16px;
+  background: var(--superficie);
+  border: 1px solid var(--linha);
+  border-radius: 999px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.busca__caixa:focus-within {
+  border-color: var(--cor-secao, var(--carmim));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cor-secao, var(--carmim)) 25%, transparent);
+}
+.busca__lupa { display: inline-flex; color: var(--tinta-suave); flex: none; }
+.busca__campo {
+  flex: 1; min-width: 0;
+  border: 0; outline: 0; background: transparent;
+  font: inherit; font-size: 1rem; color: var(--tinta);
+  padding: 11px 4px;
+}
+.busca__campo::placeholder { color: var(--tinta-suave); opacity: .85; }
+.busca__campo::-webkit-search-cancel-button { display: none; }
+.busca__limpar {
+  flex: none; width: 34px; height: 34px; border-radius: 50%;
+  border: 0; background: transparent; color: var(--tinta-suave);
+  font-size: 1.4rem; line-height: 1; cursor: pointer;
+}
+.busca__limpar:hover { background: rgba(127, 127, 127, .14); color: var(--tinta); }
+.busca__limpar[hidden], .busca__atalho[hidden] { display: none; }
+.busca__atalho {
+  flex: none; font-family: var(--f-rotulo); font-size: .75rem; color: var(--tinta-suave);
+  border: 1px solid var(--linha); border-radius: 6px; padding: 2px 7px; margin-right: 6px;
+}
+@media (hover: none), (max-width: 700px) { .busca__atalho { display: none; } }
+.busca__contagem { font-family: var(--f-rotulo); font-size: .8125rem; color: var(--tinta-suave); padding-left: 18px; min-height: 1.2em; }
+.busca__contagem:empty { display: none; }
+mark.achado {
+  background: color-mix(in srgb, var(--cor-secao, #e9b949) 32%, transparent);
+  color: inherit; border-radius: 3px; padding: 0 1px;
+}
+.busca-vazia { display: grid; gap: 8px; justify-items: start; padding: 28px; border: 1px dashed var(--linha); border-radius: var(--raio); background: var(--superficie); }
+.busca-vazia__titulo { font-size: 1.0625rem; }

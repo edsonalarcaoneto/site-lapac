@@ -147,7 +147,8 @@
   };
 
   /* ---------- cartões ---------- */
-  C.cartaoAula = function (a) {
+  C.cartaoAula = function (a, termos) {
+    termos = Array.isArray(termos) ? termos : [];
     var secao = App.secao(a.publico === "populacao" ? "populacao" : "profissionais");
     var yt = U.youtubeId(a.youtube);
     var meta = [U.dataBR(a.data), a.ministrante].filter(Boolean).join(" · ");
@@ -155,23 +156,24 @@
       C.tela({ youtube: yt, icone: yt ? SVG_PLAY : SVG_DOC, selo: yt ? null : (a.texto ? "Leitura" : "Em breve") }),
       el("div", { class: "cartao-aula__corpo" }, [
         a.area ? C.etiqueta(a.area) : null,
-        el("h3", { class: "cartao-aula__titulo", text: a.titulo }),
-        a.resumo ? el("p", { class: "cartao-aula__resumo", text: a.resumo }) : null,
+        el("h3", { class: "cartao-aula__titulo" }, [U.destacar(a.titulo, termos)]),
+        a.resumo ? el("p", { class: "cartao-aula__resumo" }, [U.destacar(a.resumo, termos)]) : null,
         meta ? el("p", { class: "cartao-aula__meta", text: meta }) : null
       ])
     ]);
   };
 
-  C.fichaProducao = function (p) {
+  C.fichaProducao = function (p, termos) {
+    termos = Array.isArray(termos) ? termos : [];
     return el("article", { class: "ficha" }, [
       el("div", { class: "ficha__topo" }, [
         p.tipo ? C.etiqueta(p.tipo) : null,
         p.data ? el("span", { class: "ficha__data", text: U.dataBR(p.data) }) : null
       ]),
-      el("h3", { class: "ficha__titulo", text: p.titulo }),
-      p.autores ? el("p", { class: "ficha__autores", text: p.autores }) : null,
-      p.onde ? el("p", { class: "ficha__onde", text: p.onde }) : null,
-      C.resumoRecolhivel(p.resumo),
+      el("h3", { class: "ficha__titulo" }, [U.destacar(p.titulo, termos)]),
+      p.autores ? el("p", { class: "ficha__autores" }, [U.destacar(p.autores, termos)]) : null,
+      p.onde ? el("p", { class: "ficha__onde" }, [U.destacar(p.onde, termos)]) : null,
+      C.resumoRecolhivel(p.resumo, termos),
       (p.arquivo || p.link) ? el("div", { class: "ficha__acoes" }, [
         p.arquivo ? C.botaoBaixar(p.arquivo, "Baixar o PDF") : null,
         p.link ? C.linkExterno(p.link, "Ler o trabalho") : null
@@ -180,10 +182,10 @@
   };
 
   /* Resumo do trabalho: textos longos aparecem recolhidos, com botão para abrir. */
-  C.resumoRecolhivel = function (texto) {
+  C.resumoRecolhivel = function (texto, termos) {
     texto = String(texto || "").trim();
     if (!texto) return null;
-    var resumo = el("p", { class: "ficha__resumo", text: texto });
+    var resumo = el("p", { class: "ficha__resumo" }, [U.destacar(texto, termos)]);
     if (texto.length < 420) return resumo;
     resumo.classList.add("ficha__resumo--recolhido");
     var botao = el("button", { type: "button", class: "ficha__mais", "aria-expanded": "false", text: "Ler o resumo completo" });
@@ -194,6 +196,56 @@
     });
     return el("div", { class: "ficha__bloco-resumo", style: "display:grid;gap:6px" }, [resumo, botao]);
   };
+
+  /* ---------- barra de busca ----------
+     opcoes: rotulo (para leitores de tela), placeholder, valor inicial, aoBuscar(texto).
+     Devolve { elemento, contagem(texto), limpar() }. */
+  var SVG_LUPA = '<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.75" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13 13l4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  C.busca = function (o) {
+    var id = "busca-" + Math.random().toString(36).slice(2, 7);
+    var campo = el("input", {
+      id: id, class: "busca__campo", type: "search", value: o.valor || "", placeholder: o.placeholder || "Buscar",
+      autocomplete: "off", spellcheck: "false", enterkeyhint: "search", "aria-describedby": id + "-contagem"
+    });
+    var limpar = el("button", { type: "button", class: "busca__limpar", "aria-label": "Limpar a busca", text: "×", hidden: !o.valor });
+    var atalho = el("kbd", { class: "busca__atalho", title: "Aperte / para buscar", text: "/" });
+    var contagem = el("p", { class: "busca__contagem", id: id + "-contagem", "aria-live": "polite" });
+    var espera;
+    function avisar() {
+      limpar.hidden = !campo.value;
+      atalho.hidden = !!campo.value;
+      clearTimeout(espera);
+      espera = setTimeout(function () { o.aoBuscar(campo.value); }, 120);
+    }
+    campo.addEventListener("input", avisar);
+    campo.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && campo.value) { e.preventDefault(); campo.value = ""; avisar(); }
+    });
+    limpar.addEventListener("click", function () { campo.value = ""; avisar(); campo.focus(); });
+    atalho.hidden = !!o.valor;
+    var form = el("form", { class: "busca", role: "search", "aria-label": o.rotulo || "Buscar" }, [
+      el("label", { class: "busca__rotulo", for: id, text: o.rotulo || "Buscar" }),
+      el("div", { class: "busca__caixa" }, [
+        el("span", { class: "busca__lupa", html: SVG_LUPA }),
+        campo, limpar, atalho
+      ]),
+      contagem
+    ]);
+    form.addEventListener("submit", function (e) { e.preventDefault(); campo.blur(); });
+    return {
+      elemento: form,
+      contagem: function (texto) { contagem.textContent = texto || ""; },
+      limpar: function () { campo.value = ""; avisar(); campo.focus(); }
+    };
+  };
+  /* "/" leva direto para a busca da página (fora de campos de texto). */
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+    var alvo = e.target;
+    if (alvo && (alvo.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(alvo.tagName))) return;
+    var campo = document.querySelector(".busca__campo");
+    if (campo) { e.preventDefault(); campo.focus(); campo.select(); }
+  });
 
   /* Botão para baixar um arquivo do site (no mesmo endereço, o navegador baixa direto). */
   C.botaoBaixar = function (ref, texto) {
