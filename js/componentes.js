@@ -172,7 +172,26 @@
       p.autores ? el("p", { class: "ficha__autores", text: p.autores }) : null,
       p.onde ? el("p", { class: "ficha__onde", text: p.onde }) : null,
       p.resumo ? el("p", { class: "ficha__resumo", text: p.resumo }) : null,
-      p.link ? C.linkExterno(p.link, "Ler o trabalho") : null
+      (p.arquivo || p.link) ? el("div", { class: "ficha__acoes" }, [
+        p.arquivo ? C.botaoBaixar(p.arquivo, "Baixar o PDF") : null,
+        p.link ? C.linkExterno(p.link, "Ler o trabalho") : null
+      ]) : null
+    ]);
+  };
+
+  /* Botão para baixar um arquivo do site (no mesmo endereço, o navegador baixa direto). */
+  C.botaoBaixar = function (ref, texto) {
+    var href = App.armazem.endereco(ref);
+    var mesmoSite = !/^https?:/i.test(href) || href.indexOf(location.origin + "/") === 0;
+    var nome = (ref && ref.nome) || href.split("/").pop();
+    return el("a", {
+      class: "botao botao--contorno botao--baixar", href: href,
+      download: mesmoSite ? nome : null,
+      target: mesmoSite ? null : "_blank", rel: mesmoSite ? null : "noopener",
+      "aria-label": texto + (nome ? " (" + nome + ")" : "")
+    }, [
+      el("span", { class: "botao__icone", "aria-hidden": "true", html: '<svg viewBox="0 0 16 16" width="16" height="16"><path d="M8 1.5v8.2m0 0L4.8 6.5M8 9.7l3.2-3.2M2.5 11v2.5h11V11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>' }),
+      texto
     ]);
   };
 

@@ -748,6 +748,9 @@ a.tubo:focus-visible { outline-offset: 6px; border-radius: 8px; }
 .ficha__autores { font-size: .9375rem; }
 .ficha__onde { font-size: .9375rem; color: var(--tinta-suave); font-style: italic; }
 .ficha__resumo { font-size: .9375rem; color: var(--tinta-suave); }
+.ficha__acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin-top: 4px; }
+.botao--baixar { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+.botao__icone { display: inline-flex; }
 
 /* Filtros */
 .filtros { display: flex; flex-wrap: wrap; gap: 8px; }

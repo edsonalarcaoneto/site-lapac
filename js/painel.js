@@ -667,36 +667,42 @@
     ];
   }
 
-  function campoMaterial(it) {
+  /* Campo para enviar um PDF (material da aula ou arquivo do trabalho), com opção de link. */
+  function campoPdf(it, o) {
     var grupo = el("div", { class: "campo-grupo campo-grupo--largo" });
     function desenhar() {
-      var atual = it.materialArquivo;
-      var filhos = [el("p", { class: "campo-rotulo", text: "Material de apoio (PDF)" })];
+      var atual = it[o.chave];
+      var filhos = [el("p", { class: "campo-rotulo", text: o.rotulo })];
       if (atual) {
         filhos.push(el("div", { class: "arquivo-atual" }, [
           el("span", { text: atual.nome || "Arquivo enviado" }),
-          el("button", { type: "button", class: "botao botao--discreto", text: "Tirar arquivo", onclick: function () { delete it.materialArquivo; desenhar(); } })
+          el("button", { type: "button", class: "botao botao--discreto", text: "Tirar arquivo", onclick: function () { delete it[o.chave]; desenhar(); } })
         ]));
       } else if (A.podeEnviarArquivos()) {
-        var arquivo = el("input", { type: "file", accept: "application/pdf", class: "campo campo--arquivo", id: "material-arquivo", "aria-label": "Enviar PDF do material de apoio" });
-        var status = el("p", { class: "campo-ajuda" });
+        var arquivo = el("input", { type: "file", accept: "application/pdf", class: "campo campo--arquivo", id: o.id, "aria-label": "Enviar " + o.rotulo });
+        var status = el("p", { class: "campo-ajuda", text: o.ajuda || "" });
         arquivo.addEventListener("change", function () {
           var f = arquivo.files && arquivo.files[0];
           if (!f) return;
           status.textContent = "Enviando " + f.name + "…";
-          A.enviarPdf(f).then(function (ref) { it.materialArquivo = ref; desenhar(); }, function (e) {
+          A.enviarPdf(f).then(function (ref) { it[o.chave] = ref; desenhar(); }, function (e) {
             status.textContent = mensagemErro(e);
             status.className = "campo-ajuda campo-ajuda--erro";
           });
         });
         filhos.push(arquivo, status);
       }
-      var link = entrada(it, "material", { type: "url", placeholder: "Ou cole um link (Google Drive, por exemplo)", "aria-label": "Link do material de apoio" });
-      filhos.push(link);
+      if (o.chaveLink) {
+        filhos.push(entrada(it, o.chaveLink, { type: "url", placeholder: "Ou cole um link (Google Drive, por exemplo)", "aria-label": "Link de " + o.rotulo }));
+      }
       grupo.replaceChildren.apply(grupo, filhos);
     }
     desenhar();
     return grupo;
+  }
+
+  function campoMaterial(it) {
+    return campoPdf(it, { chave: "materialArquivo", chaveLink: "material", rotulo: "Material de apoio (PDF)", id: "material-arquivo" });
   }
 
   function camposProducao(it) {
@@ -706,8 +712,9 @@
       campo("Título do trabalho", entrada(it, "titulo", { maxlength: "200" }), { obrigatorio: true, largo: true }),
       campo("Autores", entrada(it, "autores", { placeholder: "Sobrenome A, Sobrenome B" }), { obrigatorio: true, largo: true }),
       campo("Onde foi publicado ou apresentado", entrada(it, "onde", { placeholder: "Nome da revista ou do evento" }), { obrigatorio: true, largo: true }),
-      campo("Link", entrada(it, "link", { type: "url", placeholder: "https://…" }), { largo: true, ajuda: "Link para o artigo, o anais do evento ou o PDF." }),
-      campo("Resumo", entrada(it, "resumo", { tag: "textarea", rows: "4" }), { largo: true })
+      campo("Resumo", entrada(it, "resumo", { tag: "textarea", rows: "4" }), { largo: true }),
+      campoPdf(it, { chave: "arquivo", rotulo: "Arquivo do trabalho (PDF)", id: "producao-arquivo", ajuda: "Quem visita o site pode baixar o PDF." }),
+      campo("Link", entrada(it, "link", { type: "url", placeholder: "https://…" }), { largo: true, ajuda: "Link para o artigo ou os anais do evento." })
     ];
   }
 
