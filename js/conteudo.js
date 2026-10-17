@@ -19,7 +19,7 @@ window.LAPAC = {
     nome: "Liga Acadêmica de Patologia Clínica",
     instituicao: "PUC Goiás",
     lema: "Da coleta ao laudo.",
-    // RASCUNHO: texto curto sobre quem é a LAPAC (revisar com a diretoria)
+    // Texto curto sobre quem é a LAPAC
     sobre:
       "A LAPAC é a Liga Acadêmica de Patologia Clínica da PUC Goiás. Reunimos estudantes de Medicina " +
       "interessados na medicina laboratorial, a área que transforma uma amostra de sangue, urina ou outro " +
@@ -60,7 +60,7 @@ window.LAPAC = {
     nome: "Prof. Paulo Luiz Carvalho Francescantonio",
     papel: "Orientador da LAPAC",
     foto: "img/orientador.jpg",
-    // Resumo feito a partir do Currículo Lattes (texto informado pelo autor). Revisar com o professor.
+    // Resumo feito a partir do Currículo Lattes (texto informado pelo autor).
     resumo: [
       "Médico especialista em Patologia Clínica/Medicina Laboratorial pela SBPC/ML (Sociedade Brasileira de " +
       "Patologia Clínica/Medicina Laboratorial), biomédico e mestre em Ciências Ambientais e Saúde. É professor " +
@@ -103,8 +103,8 @@ window.LAPAC = {
       titulo: "Como coletar urina para exame",
       publico: "populacao",
       area: "Exames de urina",
-      status: "rascunho",
-      data: "",
+      status: "publicado",
+      data: "2026-10-17",
       ministrante: "",
       youtube: "",
       resumo: "O passo a passo da coleta, o porquê de cada cuidado e o que acontece com o resultado quando a coleta dá errado.",
@@ -155,8 +155,8 @@ window.LAPAC = {
       titulo: "IV SIMED",
       tipo: "Evento científico",
       status: "publicado",
-      data: "",       // confirmar (as fotos são de 21/09/2026)
-      local: "",      // confirmar
+      data: "2026-09-21",
+      local: "PUC Goiás",
       texto:
         "Participar do IV SIMED representou uma oportunidade única de atualização e troca de experiências. " +
         "O evento proporcionou contato com discussões atuais, diferentes perspectivas e um ambiente favorável " +

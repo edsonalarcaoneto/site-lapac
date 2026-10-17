@@ -40,7 +40,5 @@ com opção de rascunho. O que é publicado pelo painel se soma ao `js/conteudo.
 ## Pendências
 
 - Preencher o e-mail da liga e o link do canal do YouTube em `js/conteudo.js`.
-- Confirmar data e local da última atividade.
-- Revisar o texto "Quem somos", o resumo do orientador e a aula de coleta de urina (está como rascunho).
 - Completar a lista da diretoria em `js/conteudo.js`.
 - Configurar o Supabase e preencher o bloco `servidor` em `js/conteudo.js`.
