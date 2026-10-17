@@ -963,6 +963,15 @@ a.tubo:focus-visible { outline-offset: 6px; border-radius: 8px; }
 }
 textarea.campo { resize: vertical; line-height: 1.5; }
 .campo:focus { border-color: var(--carmim); }
+.campo-senha { position: relative; display: block; }
+.campo-senha .campo { padding-right: 6.25rem; }
+.campo-senha__ver {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  border: 0; border-radius: 6px; background: transparent; color: var(--carmim);
+  font: inherit; font-size: .875rem; font-weight: 700; padding: 6px 10px; cursor: pointer;
+}
+.campo-senha__ver:hover { background: rgba(127, 127, 127, .12); }
+.campo-senha__ver:focus-visible { outline: 2px solid var(--carmim); outline-offset: 1px; }
 .campo--leitura { font-family: var(--f-rotulo); font-size: .9375rem; }
 .campo--pequeno { font-size: .875rem; padding: 6px 8px; }
 .campo--arquivo { padding: 8px; }

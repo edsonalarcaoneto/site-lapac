@@ -33,6 +33,28 @@
 
   function renderizar() {
     raiz.replaceChildren(A.sessao ? painel() : login());
+    olhosNasSenhas(raiz);
+  }
+
+  /* Botão "Mostrar" em todo campo de senha, para conferir o que foi digitado. */
+  function olhosNasSenhas(onde) {
+    onde.querySelectorAll('input[type="password"]:not([data-olho])').forEach(function (inp) {
+      inp.setAttribute("data-olho", "");
+      var caixa = el("span", { class: "campo-senha" });
+      inp.parentNode.insertBefore(caixa, inp);
+      caixa.appendChild(inp);
+      var ver = el("button", { type: "button", class: "campo-senha__ver", "aria-label": "Mostrar senha", "aria-pressed": "false", text: "Mostrar" });
+      ver.addEventListener("click", function (e) {
+        e.preventDefault();
+        var mostrar = inp.type === "password";
+        inp.type = mostrar ? "text" : "password";
+        ver.textContent = mostrar ? "Ocultar" : "Mostrar";
+        ver.setAttribute("aria-label", mostrar ? "Ocultar senha" : "Mostrar senha");
+        ver.setAttribute("aria-pressed", mostrar ? "true" : "false");
+        inp.focus();
+      });
+      caixa.appendChild(ver);
+    });
   }
 
   /* ---------- login ---------- */
