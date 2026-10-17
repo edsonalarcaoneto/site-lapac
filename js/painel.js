@@ -27,7 +27,13 @@
     atualizar: function () {
       if (!estado.editando) renderizar();
     },
-    editando: function () { return !!estado.editando; }
+    editando: function () { return !!estado.editando; },
+    sair: function () {
+      estado.editando = null;
+      estado.trocandoSenha = false;
+      estado.confirmarRemocao = null;
+      return A.sair();
+    }
   };
   App.paginas.login = App.painel.pagina;
 
@@ -441,7 +447,7 @@
           "aria-expanded": estado.trocandoSenha ? "true" : "false",
           onclick: function () { estado.trocandoSenha = !estado.trocandoSenha; renderizar(); }
         }) : null,
-        el("button", { type: "button", class: "botao botao--contorno", text: "Sair", onclick: function () { estado.editando = null; estado.trocandoSenha = false; A.sair(); } })
+        el("button", { type: "button", class: "botao botao--contorno", text: "Sair", onclick: function () { App.painel.sair(); } })
       ])
     ]);
 

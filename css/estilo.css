@@ -270,6 +270,15 @@ main:focus { outline: none; }
 .menu a:hover .menu__tampa { transform: translateY(-2px); }
 .menu a[aria-current="page"] { box-shadow: inset 0 -3px 0 var(--tampa); border-radius: 0; font-weight: 700; }
 .menu a.menu__login { color: var(--tinta-suave); }
+.menu__sair {
+  display: flex; align-items: center; height: 100%;
+  font: inherit; font-size: .9375rem; font-weight: 700; color: var(--carmim);
+  background: transparent; border: 1px solid var(--carmim); border-radius: 999px;
+  padding: 6px 14px; margin-left: 6px; cursor: pointer; white-space: nowrap;
+}
+.menu__sair:hover { background: var(--carmim); color: #fff; }
+.menu__sair-item { display: flex; align-items: center; }
+.menu__sair-item[hidden] { display: none; }
 
 @media (max-width: 1023px) {
   .menu-botao { display: inline-flex; }
@@ -278,6 +287,8 @@ main:focus { outline: none; }
   .menu ul { flex-direction: column; gap: 0; padding-block: 4px 8px; }
   .menu a { padding: 13px 4px; border-radius: 0; border-top: 1px solid var(--linha); }
   .menu a[aria-current="page"] { box-shadow: inset 4px 0 0 var(--tampa); padding-left: 14px; }
+  .menu__sair-item { border-top: 1px solid var(--linha); padding-top: 12px; }
+  .menu__sair { margin-left: 0; }
 }
 
 .faixa-tubos { display: grid; grid-template-columns: repeat(6, 1fr); height: 5px; }

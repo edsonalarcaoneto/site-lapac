@@ -14,7 +14,13 @@
   var principal;
   var linksMenu = [];
   var rotaAtual = null;
-  var menu, botaoMenu;
+  var menu, botaoMenu, rotuloLogin, itemSair;
+
+  function atualizarSessaoNoMenu() {
+    var conectado = !!A.sessao;
+    if (itemSair) itemSair.hidden = !conectado;
+    if (rotuloLogin) rotuloLogin.textContent = conectado ? "Painel" : (App.secao("login") || {}).nome || "Login";
+  }
 
   /* ---------- cabeçalho ---------- */
   function montarCabecalho() {
@@ -28,13 +34,25 @@
     ]);
 
     var lista = el("ul", null, App.SECOES.map(function (s) {
+      var rotulo = el("span", { class: "menu__rotulo", text: s.nome });
+      if (s.id === "login") rotuloLogin = rotulo;
       var a = el("a", { href: "#" + s.id, "data-rota": s.id, style: "--tampa: var(--tubo-" + s.tampa + ")", class: s.id === "login" ? "menu__login" : null }, [
         el("span", { class: "menu__tampa", "aria-hidden": "true" }),
-        s.nome
+        rotulo
       ]);
       linksMenu.push(a);
       return el("li", null, [a]);
     }));
+    /* Quando um diretor está conectado: a aba Login vira "Painel" e aparece "Sair" ao lado. */
+    var botaoSair = el("button", { type: "button", class: "menu__sair", text: "Sair" });
+    botaoSair.addEventListener("click", function () {
+      abrirMenu(false);
+      (App.painel && App.painel.sair ? App.painel.sair() : A.sair()).then(function () {
+        U.aviso("Você saiu da sua conta.");
+      });
+    });
+    itemSair = el("li", { class: "menu__sair-item", hidden: true }, [botaoSair]);
+    lista.appendChild(itemSair);
     menu = el("nav", { id: "menu", class: "menu", "aria-label": "Seções do site", "data-fechado": "true" }, [lista]);
     botaoMenu = el("button", { class: "menu-botao", type: "button", "aria-expanded": "false", "aria-controls": "menu", text: "Menu" });
     botaoMenu.addEventListener("click", function () {
@@ -192,6 +210,7 @@
     }
 
     A.aoMudar(function (motivo) {
+      atualizarSessaoNoMenu();
       if (rotaAtual === "login" && motivo === "dados") { App.painel.atualizar(); return; }
       if (rotaAtual === "login" && App.painel.editando()) return;
       desenhar(rotaAtual, { manterRolagem: true });
