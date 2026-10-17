@@ -28,7 +28,7 @@ window.LAPAC = {
   },
 
   contato: {
-    email: "",                                            // e-mail da liga (a definir)
+    email: "lapacpucgoias@gmail.com",
     instagram: "https://www.instagram.com/lapac_pucgo/",
     instagramUsuario: "@lapac_pucgo",
     youtube: "",                                          // link do canal (a definir)

@@ -81,7 +81,7 @@
     var liga = D.liga || {};
     var c = D.contato || {};
     var emailItem = c.email
-      ? el("li", null, ["E-mail: ", el("span", { class: "rodape__email", text: c.email })])
+      ? el("li", null, ["E-mail: ", el("a", { class: "rodape__email", href: "mailto:" + c.email, text: c.email })])
       : el("li", { class: "rodape__pendente", text: "E-mail da liga: em breve" });
     var instaItem = c.instagram ? el("li", null, ["Instagram: ", C.linkExterno(c.instagram, c.instagramUsuario || "Instagram", "")]) : null;
     var ytItem = c.youtube

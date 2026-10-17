@@ -1102,3 +1102,6 @@ textarea.campo { resize: vertical; line-height: 1.5; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+.canal__acoes { display: flex; flex-wrap: wrap; gap: 8px; }
+.canal__acoes .botao { text-decoration: none; }

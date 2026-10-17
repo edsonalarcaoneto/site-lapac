@@ -316,7 +316,10 @@
       cartaoEmail = el("div", { class: "canal" }, [
         el("p", { class: "canal__tipo", text: "E-mail" }),
         campo,
-        el("button", { type: "button", class: "botao botao--contorno", text: "Copiar e-mail", onclick: function () { U.copiar(c.email, campo); } })
+        el("div", { class: "canal__acoes" }, [
+          el("a", { class: "botao", href: "mailto:" + c.email, text: "Escrever e-mail" }),
+          el("button", { type: "button", class: "botao botao--contorno", text: "Copiar e-mail", onclick: function () { U.copiar(c.email, campo); } })
+        ])
       ]);
     } else {
       cartaoEmail = el("div", { class: "canal" }, [
