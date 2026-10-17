@@ -16,7 +16,7 @@
   var TIPOS_PRODUCAO = ["Artigo", "Resumo em congresso", "Pôster", "Apresentação oral"];
   var TIPOS_ATIVIDADE = ["Extensão", "Ensino", "Pesquisa", "Evento científico", "Outra"];
 
-  var estado = { aba: "aulas", editando: null, confirmarRemocao: null, trocandoSenha: false };
+  var estado = { aba: "aulas", editando: null, confirmarRemocao: null, trocandoSenha: false, primeiroAcesso: null };
   var raiz = el("div", { class: "envoltorio pagina-corpo painel-raiz" });
 
   App.painel = {
@@ -42,6 +42,8 @@
 
     if (!A.pronto) {
       conteudo.push(el("p", { class: "texto-suave", text: "Carregando…" }));
+    } else if (A.modo === "supabase" && estado.primeiroAcesso) {
+      conteudo.push(formPrimeiroAcesso(erro));
     } else if (A.modo === "supabase") {
       var email = el("input", { id: "login-email", class: "campo", type: "email", autocomplete: "username", inputmode: "email", placeholder: "seu.email@exemplo.com" });
       var senha = el("input", { id: "login-senha", class: "campo", type: "password", autocomplete: "current-password" });
@@ -50,7 +52,14 @@
         el("label", { class: "campo-grupo", for: "login-email" }, [el("span", { class: "campo-rotulo", text: "E-mail" }), email]),
         el("label", { class: "campo-grupo", for: "login-senha" }, [el("span", { class: "campo-rotulo", text: "Senha" }), senha]),
         botaoEntrar,
-        el("p", { class: "campo-ajuda", text: "Esqueceu a senha? Peça para o diretor que administra o site criar uma nova." })
+        el("p", { class: "campo-ajuda", text: "Esqueceu a senha? Peça ao diretor que administra o site para apagar sua conta e faça o primeiro acesso de novo." })
+      ]);
+      var irPrimeiro = el("div", { class: "login__primeiro" }, [
+        el("p", { class: "campo-ajuda", text: "Ainda não tem conta?" }),
+        el("button", {
+          type: "button", class: "botao botao--contorno", text: "Primeiro acesso",
+          onclick: function () { estado.primeiroAcesso = { passo: 1, dados: {} }; renderizar(); }
+        })
       ]);
       form.addEventListener("submit", function (e) {
         e.preventDefault();
@@ -66,7 +75,7 @@
               : "Não foi possível entrar agora. Confira a internet e tente de novo.";
         });
       });
-      conteudo.push(form);
+      conteudo.push(form, irPrimeiro);
     } else if (A.modo === "claude") {
       conteudo.push(
         el("p", { text: "Nesta prévia, o acesso usa a sua conta do Claude. Diretores que receberam acesso de Editor à prévia entram direto, sem senha." }),
@@ -104,10 +113,11 @@
       conteudo.push(el("p", { text: "O painel ainda não está ligado a um servidor. Quando estiver, cada diretor vai entrar aqui com a própria conta." }));
     }
 
+    var primeiro = A.modo === "supabase" && estado.primeiroAcesso;
     return el("div", { class: "login" }, [
       el("section", { class: "bloco login__cartao" }, [
-        el("h2", { class: "rotulo", text: "Entrar" }),
-        el("p", { class: "titulo-item", text: "Acesso dos diretores" })
+        el("h2", { class: "rotulo", text: primeiro ? "Primeiro acesso" : "Entrar" }),
+        el("p", { class: "titulo-item", text: primeiro ? "Criar a sua conta de diretor" : "Acesso dos diretores" })
       ].concat(conteudo, [erro])),
       el("section", { class: "login__lado" }, [
         el("p", { class: "login__lado-titulo", text: "O que dá para fazer aqui" }),
@@ -120,6 +130,106 @@
         ])
       ])
     ]);
+  }
+
+  /* ---------- primeiro acesso (site publicado) ----------
+     Passo 1: e-mail (duas vezes) e senha padrão recebida da diretoria.
+     Passo 2: nome, cargo e a nova senha (duas vezes). A conta só é criada no fim,
+     e o servidor confere a senha padrão (ver supabase/primeiro-acesso.sql). */
+  function grupo(id, rotulo, controle, ajuda) {
+    return el("label", { class: "campo-grupo", for: id }, [el("span", { class: "campo-rotulo", text: rotulo }), controle]
+      .concat(ajuda ? [el("span", { class: "campo-ajuda", text: ajuda })] : []));
+  }
+  function iguaisEmail(a, b) { return a.trim().toLowerCase() === b.trim().toLowerCase(); }
+  function emailValido(a) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a.trim()); }
+
+  function formPrimeiroAcesso(erro) {
+    var pa = estado.primeiroAcesso;
+    var d = pa.dados;
+    var voltar = el("button", {
+      type: "button", class: "botao botao--discreto",
+      text: pa.passo === 1 ? "Voltar para o login" : "Voltar",
+      onclick: function () {
+        if (pa.passo === 1) estado.primeiroAcesso = null; else pa.passo = 1;
+        renderizar();
+      }
+    });
+
+    if (pa.passo === 1) {
+      var email = el("input", { id: "pa-email", class: "campo", type: "email", autocomplete: "email", inputmode: "email", value: d.email || "" });
+      var email2 = el("input", { id: "pa-email2", class: "campo", type: "email", autocomplete: "off", inputmode: "email", value: d.email2 || "" });
+      var convite = el("input", { id: "pa-convite", class: "campo", type: "password", autocomplete: "off", value: d.convite || "" });
+      var seguir = el("button", { type: "submit", class: "botao", text: "Continuar" });
+      var f1 = el("form", { class: "login__form", novalidate: true }, [
+        el("p", { class: "texto-suave", text: "Passo 1 de 2" }),
+        grupo("pa-email", "Seu e-mail", email, "Use o e-mail que você quer usar para entrar no site."),
+        grupo("pa-email2", "Repita o e-mail", email2),
+        grupo("pa-convite", "Senha padrão", convite, "A senha que a diretoria passou para o primeiro acesso."),
+        seguir, voltar
+      ]);
+      email2.addEventListener("paste", function (e) { e.preventDefault(); erro.textContent = "Digite o e-mail de novo, sem colar, para conferir."; });
+      f1.addEventListener("submit", function (e) {
+        e.preventDefault();
+        d.email = email.value; d.email2 = email2.value; d.convite = convite.value;
+        if (!emailValido(email.value)) { erro.textContent = "Confira o e-mail: ele não parece completo."; email.focus(); return; }
+        if (!iguaisEmail(email.value, email2.value)) { erro.textContent = "Os dois e-mails não são iguais. Confira e digite de novo."; email2.focus(); return; }
+        if (!convite.value) { erro.textContent = "Digite a senha padrão."; convite.focus(); return; }
+        erro.textContent = "";
+        pa.passo = 2;
+        renderizar();
+      });
+      setTimeout(function () { (d.email ? email2 : email).focus(); }, 0);
+      return f1;
+    }
+
+    var nome = el("input", { id: "pa-nome", class: "campo", type: "text", autocomplete: "name", value: d.nome || "" });
+    var cargo = el("input", { id: "pa-cargo", class: "campo", type: "text", list: "pa-cargos", value: d.cargo || "", placeholder: "Ex.: Diretor de Ensino" });
+    var cargos = el("datalist", { id: "pa-cargos" }, ["Presidente", "Vice-presidente", "Diretor de Ensino", "Diretor de Pesquisa",
+      "Diretor de Extensão", "Diretor de Marketing", "Secretário", "Tesoureiro"].map(function (c) { return el("option", { value: c }); }));
+    var senha = el("input", { id: "pa-senha", class: "campo", type: "password", autocomplete: "new-password" });
+    var senha2 = el("input", { id: "pa-senha2", class: "campo", type: "password", autocomplete: "new-password" });
+    var criar = el("button", { type: "submit", class: "botao", text: "Criar minha conta" });
+    var f2 = el("form", { class: "login__form", novalidate: true }, [
+      el("p", { class: "texto-suave", text: "Passo 2 de 2 · " + d.email.trim().toLowerCase() }),
+      grupo("pa-nome", "Seu nome", nome),
+      grupo("pa-cargo", "Seu cargo na diretoria", cargo), cargos,
+      grupo("pa-senha", "Crie a sua senha", senha, "Pelo menos 8 caracteres, diferente da senha padrão."),
+      grupo("pa-senha2", "Repita a senha", senha2),
+      criar, voltar
+    ]);
+    f2.addEventListener("submit", function (e) {
+      e.preventDefault();
+      d.nome = nome.value; d.cargo = cargo.value;
+      if (!nome.value.trim()) { erro.textContent = "Digite o seu nome."; nome.focus(); return; }
+      if (senha.value.length < 8) { erro.textContent = "A senha precisa ter pelo menos 8 caracteres."; senha.focus(); return; }
+      if (senha.value === d.convite) { erro.textContent = "Crie uma senha diferente da senha padrão."; senha.focus(); return; }
+      if (senha.value !== senha2.value) { erro.textContent = "As duas senhas não são iguais. Digite de novo."; senha2.value = ""; senha2.focus(); return; }
+      erro.textContent = "";
+      criar.disabled = true;
+      A.criarConta({ email: d.email, senha: senha.value, convite: d.convite, nome: nome.value.trim(), cargo: cargo.value.trim() }).then(function () {
+        estado.primeiroAcesso = null;
+        U.aviso("Conta criada. Bem-vindo ao painel!");
+      }, function (err) {
+        criar.disabled = false;
+        var code = err && err.code;
+        if (code === "convite") {
+          d.convite = "";
+          pa.passo = 1;
+          renderizar();
+          raiz.querySelector(".erro").textContent = "A senha padrão não confere (ou o primeiro acesso está desligado). Confira com a diretoria.";
+          return;
+        }
+        erro.textContent = code === "ja_existe"
+          ? "Já existe uma conta com este e-mail. Volte e entre pelo login normal."
+          : code === "senha_fraca"
+            ? "Senha fraca demais. Use mais caracteres, misturando letras e números."
+            : code === "fechado"
+              ? "O primeiro acesso está fechado no momento. Fale com a diretoria."
+              : "Não foi possível criar a conta agora. Confira a internet e tente de novo.";
+      });
+    });
+    setTimeout(function () { (d.nome ? senha : nome).focus(); }, 0);
+    return f2;
   }
 
   /* ---------- painel ---------- */

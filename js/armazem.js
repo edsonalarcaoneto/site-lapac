@@ -255,6 +255,33 @@
     return Promise.resolve();
   };
 
+  /* Primeiro acesso: cria a conta do diretor. O servidor só aceita com a senha padrão certa
+     (supabase/primeiro-acesso.sql) e já coloca o e-mail na lista de diretores. */
+  A.criarConta = function (d) {
+    if (A.modo !== "supabase") return Promise.reject({ code: "sem_servidor" });
+    var email = String(d.email || "").trim().toLowerCase();
+    return sb.auth.signUp({
+      email: email,
+      password: String(d.senha || ""),
+      options: { data: { convite: String(d.convite || ""), nome: d.nome || "", cargo: d.cargo || "" } }
+    }).then(function (r) {
+      if (r.error) {
+        var msg = String(r.error.message || "").toLowerCase();
+        if (msg.indexOf("already") >= 0 || msg.indexOf("registered") >= 0 || msg.indexOf("exists") >= 0) throw { code: "ja_existe" };
+        if (msg.indexOf("database error") >= 0 || msg.indexOf("convite") >= 0) throw { code: "convite" };
+        if (msg.indexOf("signup") >= 0 || msg.indexOf("not allowed") >= 0) throw { code: "fechado" };
+        if (msg.indexOf("password") >= 0 || msg.indexOf("weak") >= 0) throw { code: "senha_fraca" };
+        throw { code: "rede" };
+      }
+      var sessao = r.data && r.data.session;
+      if (!sessao) throw { code: "rede" };
+      return definirSessaoSupabase(sessao);
+    }).then(function () {
+      avisar("sessao");
+      return carregarSupabase();
+    });
+  };
+
   /* Troca a senha da conta conectada (só no site publicado, com Supabase). */
   A.trocarSenha = function (nova) {
     if (A.modo !== "supabase" || !A.sessao) return Promise.reject({ code: "sem_servidor" });
