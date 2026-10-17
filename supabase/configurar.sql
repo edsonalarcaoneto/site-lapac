@@ -11,9 +11,10 @@ create table if not exists public.diretores (
 );
 alter table public.diretores enable row level security;
 
-create policy "diretores leem a lista"
+-- Cada pessoa conectada só enxerga a própria linha (a lista de e-mails não fica exposta).
+create policy "cada diretor lê a própria linha"
   on public.diretores for select to authenticated
-  using (true);
+  using (email = lower(coalesce(auth.jwt() ->> 'email', '')));
 
 -- Confere se quem está logado é diretor (usada nas regras abaixo).
 create or replace function public.eh_diretor()

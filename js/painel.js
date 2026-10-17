@@ -16,7 +16,7 @@
   var TIPOS_PRODUCAO = ["Artigo", "Resumo em congresso", "Pôster", "Apresentação oral"];
   var TIPOS_ATIVIDADE = ["Extensão", "Ensino", "Pesquisa", "Evento científico", "Outra"];
 
-  var estado = { aba: "aulas", editando: null, confirmarRemocao: null };
+  var estado = { aba: "aulas", editando: null, confirmarRemocao: null, trocandoSenha: false };
   var raiz = el("div", { class: "envoltorio pagina-corpo painel-raiz" });
 
   App.painel = {
@@ -142,9 +142,18 @@
           type: "button", class: "botao botao--discreto", text: "Apagar dados da demonstração",
           onclick: function () { A.limparDemonstracao(); U.aviso("Dados da demonstração apagados."); }
         }) : null,
-        el("button", { type: "button", class: "botao botao--contorno", text: "Sair", onclick: function () { estado.editando = null; A.sair(); } })
+        A.modo === "supabase" ? el("button", {
+          type: "button", class: "botao botao--discreto", text: "Trocar senha",
+          "aria-expanded": estado.trocandoSenha ? "true" : "false",
+          onclick: function () { estado.trocandoSenha = !estado.trocandoSenha; renderizar(); }
+        }) : null,
+        el("button", { type: "button", class: "botao botao--contorno", text: "Sair", onclick: function () { estado.editando = null; estado.trocandoSenha = false; A.sair(); } })
       ])
     ]);
+
+    if (estado.trocandoSenha && A.modo === "supabase") {
+      return el("div", { class: "painel" }, [barra, formularioSenha()]);
+    }
 
     var abas = el("div", { class: "painel__abas", role: "tablist", "aria-label": "O que publicar" }, Object.keys(COLECOES).map(function (k) {
       var n = A.itens(k, { incluirRascunhos: true }).length;
@@ -523,9 +532,50 @@
     return grupo;
   }
 
+  /* ---------- troca de senha (site publicado) ---------- */
+  function formularioSenha() {
+    var nova = el("input", { id: "senha-nova", class: "campo", type: "password", autocomplete: "new-password" });
+    var repetir = el("input", { id: "senha-repetir", class: "campo", type: "password", autocomplete: "new-password" });
+    var erro = el("p", { class: "erro", role: "alert" });
+    var salvar = el("button", { type: "submit", class: "botao", text: "Salvar nova senha" });
+    var form = el("form", { class: "formulario bloco", novalidate: true }, [
+      el("div", { class: "formulario__topo" }, [
+        el("h2", { class: "titulo-item", text: "Trocar senha" }),
+        el("p", { class: "texto-suave", text: "Use pelo menos 8 caracteres. A senha vale a partir da próxima entrada." })
+      ]),
+      el("div", { class: "formulario__campos" }, [
+        el("label", { class: "campo-grupo", for: "senha-nova" }, [el("span", { class: "campo-rotulo", text: "Nova senha" }), nova]),
+        el("label", { class: "campo-grupo", for: "senha-repetir" }, [el("span", { class: "campo-rotulo", text: "Repita a nova senha" }), repetir])
+      ]),
+      erro,
+      el("div", { class: "formulario__botoes" }, [
+        salvar,
+        el("button", { type: "button", class: "botao botao--discreto", text: "Cancelar", onclick: function () { estado.trocandoSenha = false; renderizar(); } })
+      ])
+    ]);
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      if (nova.value.length < 8) { erro.textContent = "A senha precisa ter pelo menos 8 caracteres."; nova.focus(); return; }
+      if (nova.value !== repetir.value) { erro.textContent = "As duas senhas não são iguais."; repetir.focus(); return; }
+      erro.textContent = "";
+      salvar.disabled = true;
+      A.trocarSenha(nova.value).then(function () {
+        estado.trocandoSenha = false;
+        renderizar();
+        U.aviso("Senha trocada.");
+      }, function (err) {
+        salvar.disabled = false;
+        erro.textContent = (err && err.message) || "Não foi possível trocar a senha agora. Tente de novo.";
+      });
+    });
+    setTimeout(function () { nova.focus(); }, 0);
+    return form;
+  }
+
   function mensagemErro(e) {
     var code = e && e.code;
     if (e && e.message && (code === "quota_exceeded" || code === "too_large")) return e.message;
+    if (code === "invalid_argument" && A.modo === "supabase") return "O servidor recusou a publicação. Saia, entre de novo e tente outra vez.";
     if (code === "invalid_argument" || code === "not_granted") return "Sua conta não tem permissão para publicar nesta prévia.";
     if (code === "quota_or_state") return "O espaço de arquivos da prévia acabou. Remova fotos antigas e tente de novo.";
     if (code === "unsupported_type") return "Tipo de arquivo não aceito.";

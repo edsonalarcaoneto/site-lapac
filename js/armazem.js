@@ -255,6 +255,25 @@
     return Promise.resolve();
   };
 
+  /* Troca a senha da conta conectada (só no site publicado, com Supabase). */
+  A.trocarSenha = function (nova) {
+    if (A.modo !== "supabase" || !A.sessao) return Promise.reject({ code: "sem_servidor" });
+    return sb.auth.updateUser({ password: String(nova || "") }).then(function (r) {
+      if (!r.error) return;
+      var msg = String(r.error.message || "").toLowerCase();
+      throw {
+        code: "senha",
+        message: msg.indexOf("different") >= 0
+          ? "A nova senha precisa ser diferente da atual."
+          : msg.indexOf("weak") >= 0 || msg.indexOf("at least") >= 0 || msg.indexOf("characters") >= 0
+            ? "Senha fraca demais. Use mais caracteres, misturando letras e números."
+            : msg.indexOf("session") >= 0 || msg.indexOf("jwt") >= 0
+              ? "Sua sessão expirou. Saia, entre de novo e tente outra vez."
+              : "Não foi possível trocar a senha agora. Tente de novo."
+      };
+    });
+  };
+
   /* Nomes de quem atualizou cada item (na prévia guardamos só o id da pessoa). */
   A.nomes = function (ids) {
     if (A.modo !== "claude" || !ns.user || !ids.length) return Promise.resolve({});

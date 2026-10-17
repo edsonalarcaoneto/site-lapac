@@ -37,18 +37,17 @@ window.LAPAC = {
 
   /*
     SERVIDOR DO LOGIN (Supabase)
-    Preencha com os dados do projeto no Supabase (Project Settings → API) para o login
-    de verdade funcionar no site publicado. A chave "anon"/"publishable" é pública por natureza:
-    quem protege os dados são as regras do arquivo supabase/configurar.sql.
-    Enquanto estiver vazio, a aba Login funciona em modo demonstração.
+    Dados do projeto "LAPAC SITE" no Supabase (Settings → API Keys).
+    A chave "publishable" é pública por natureza: quem protege os dados são as regras
+    do arquivo supabase/configurar.sql. Nunca coloque aqui a chave secreta (secret / service_role).
   */
   servidor: {
-    supabaseUrl: "",      // ex.: "https://abcdefghijkl.supabase.co"
-    supabaseChave: ""     // chave anon (public)
+    supabaseUrl: "https://xrzctbqxlcfwatgddvwr.supabase.co",
+    supabaseChave: "sb_publishable_tCCW652fNZkYgrdHAOYgow_9jXmuoMA"
   },
 
   painel: {
-    demonstracao: true    // false = esconde o modo demonstração quando não há servidor
+    demonstracao: false   // true = mostra o modo demonstração quando o servidor não carrega
   },
 
   // Usado no login de demonstração da aba Login. Complete com os demais diretores.
