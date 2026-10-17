@@ -19,7 +19,7 @@
   function atualizarSessaoNoMenu() {
     var conectado = !!A.sessao;
     if (itemSair) itemSair.hidden = !conectado;
-    if (rotuloLogin) rotuloLogin.textContent = conectado ? "Painel" : (App.secao("login") || {}).nome || "Login";
+    if (rotuloLogin) rotuloLogin.textContent = C.nomeSecao(App.secao("login"));
   }
 
   /* ---------- cabeçalho ---------- */

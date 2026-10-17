@@ -34,6 +34,12 @@
     return App.SECOES.filter(function (s) { return s.id === id; })[0] || null;
   };
 
+  /* Nome mostrado para a seção: com um diretor conectado, a aba Login vira "Painel". */
+  C.nomeSecao = function (secao) {
+    var conectado = App.armazem && App.armazem.sessao;
+    return secao && secao.id === "login" && conectado ? "Painel" : (secao ? secao.nome : "");
+  };
+
   /* ---------- tubo de coleta ---------- */
   C.tubo = function (secao, opcoes) {
     opcoes = opcoes || {};
@@ -45,7 +51,7 @@
     };
     if (opcoes.href) {
       attrs.href = opcoes.href;
-      attrs["aria-label"] = secao.nome;
+      attrs["aria-label"] = opcoes.texto || C.nomeSecao(secao);
     } else {
       attrs["aria-hidden"] = "true";
     }
@@ -55,7 +61,7 @@
         el("span", { class: "tubo__amostra" }),
         el("span", { class: "tubo__etiqueta" }, [
           el("span", { class: "tubo__barras" }),
-          el("span", { class: "tubo__texto", text: opcoes.texto || secao.nome }),
+          el("span", { class: "tubo__texto", text: opcoes.texto || C.nomeSecao(secao) }),
           el("span", { class: "tubo__codigo", text: "LAPAC·0" + ordem })
         ])
       ])
@@ -76,7 +82,7 @@
   C.estante = function () {
     return el("div", { class: "estante" }, [
       el("div", { class: "estante__tubos" }, App.SECOES.map(function (s) {
-        return el("div", { class: "estante__vaga" }, [C.tubo(s, { href: "#" + s.id, texto: s.nome })]);
+        return el("div", { class: "estante__vaga" }, [C.tubo(s, { href: "#" + s.id, texto: C.nomeSecao(s) })]);
       }))
     ]);
   };
@@ -92,11 +98,11 @@
             el("span", { class: "heroi__ponto", "aria-hidden": "true" }),
             el("span", { text: "Tubo " + ordem + " de 6 · tampa " + secao.cor.toLowerCase() + " · " + secao.uso })
           ]),
-          el("h1", { class: "heroi__titulo", text: extra.titulo || secao.titulo }),
+          el("h1", { class: "heroi__titulo", text: extra.titulo || (secao.id === "login" ? C.nomeSecao(secao) : secao.titulo) }),
           extra.descricao === null ? null : el("p", { class: "heroi__descricao", text: extra.descricao || secao.descricao }),
           extra.meta || null
         ]),
-        el("div", { class: "heroi__tubo" }, [C.tubo(secao, { tamanho: "grande", texto: extra.textoTubo || secao.nome })])
+        el("div", { class: "heroi__tubo" }, [C.tubo(secao, { tamanho: "grande", texto: extra.textoTubo || C.nomeSecao(secao) })])
       ])
     ]);
   };
