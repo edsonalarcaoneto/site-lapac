@@ -171,12 +171,28 @@
       el("h3", { class: "ficha__titulo", text: p.titulo }),
       p.autores ? el("p", { class: "ficha__autores", text: p.autores }) : null,
       p.onde ? el("p", { class: "ficha__onde", text: p.onde }) : null,
-      p.resumo ? el("p", { class: "ficha__resumo", text: p.resumo }) : null,
+      C.resumoRecolhivel(p.resumo),
       (p.arquivo || p.link) ? el("div", { class: "ficha__acoes" }, [
         p.arquivo ? C.botaoBaixar(p.arquivo, "Baixar o PDF") : null,
         p.link ? C.linkExterno(p.link, "Ler o trabalho") : null
       ]) : null
     ]);
+  };
+
+  /* Resumo do trabalho: textos longos aparecem recolhidos, com botão para abrir. */
+  C.resumoRecolhivel = function (texto) {
+    texto = String(texto || "").trim();
+    if (!texto) return null;
+    var resumo = el("p", { class: "ficha__resumo", text: texto });
+    if (texto.length < 420) return resumo;
+    resumo.classList.add("ficha__resumo--recolhido");
+    var botao = el("button", { type: "button", class: "ficha__mais", "aria-expanded": "false", text: "Ler o resumo completo" });
+    botao.addEventListener("click", function () {
+      var abrir = resumo.classList.toggle("ficha__resumo--recolhido") === false;
+      botao.textContent = abrir ? "Recolher o resumo" : "Ler o resumo completo";
+      botao.setAttribute("aria-expanded", abrir ? "true" : "false");
+    });
+    return el("div", { class: "ficha__bloco-resumo", style: "display:grid;gap:6px" }, [resumo, botao]);
   };
 
   /* Botão para baixar um arquivo do site (no mesmo endereço, o navegador baixa direto). */
