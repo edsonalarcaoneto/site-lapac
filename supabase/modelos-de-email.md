@@ -3,6 +3,10 @@
 O site pede ao diretor o **código** que chega no e-mail (não um link). Para isso, os dois
 modelos abaixo precisam mostrar o código, com `{{ .Token }}`.
 
+O Supabase só deixa editar os modelos depois que o serviço de envio próprio (SMTP, no fim deste
+arquivo) estiver ligado. Até lá, os e-mails saem com o modelo padrão, que traz um link; o site
+também aceita esse link (quem toca nele volta ao site já conectado).
+
 Onde trocar: **Authentication → Emails → Templates**. Em cada modelo, troque o assunto
 (**Subject**) e o corpo (**Body**, aba de código) e clique em **Save changes**.
 
