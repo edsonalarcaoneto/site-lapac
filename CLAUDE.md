@@ -193,6 +193,19 @@ E-mail e senha.
 - `lerRota` em `app.js` manda esses endereços para a aba Login.
 - `limparEnderecoDoEmail()` limpa o endereço depois.
 
+## Formulário de contato (Web3Forms)
+
+- A aba Contato tem um formulário com nome, e-mail, assunto (texto livre) e mensagem. O envio passa pelo
+  Web3Forms, que entrega a mensagem em `lapacpucgoias@gmail.com`.
+- A chave fica em `contato.formularioChave`, em `js/conteudo.js`. Ela é pública de propósito: só serve
+  para mandar mensagens a esse e-mail. A conta do Web3Forms é do e-mail da liga.
+- O e-mail chega com o assunto "Site da LAPAC: <assunto>", e o "Responder" do Gmail vai para quem
+  escreveu (`replyto`).
+- O campo invisível `botcheck` barra robôs de spam. O plano grátis entrega até 250 mensagens por mês.
+- O cartão de e-mail continua com o botão "Copiar e-mail" para quem prefere escrever por fora.
+- Para testar sem mandar e-mail de verdade, troque `window.fetch` por uma função falsa que responda
+  `{ success: true }` para `api.web3forms.com`.
+
 ## Domínio
 
 - `lapac.space` é registrado na Whois.com, com DNS em `ns1`–`ns4.whois.com`.
