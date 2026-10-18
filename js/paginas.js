@@ -249,7 +249,7 @@
       ]) : null
     ]);
 
-    var endMaterial = A.endereco(a.materialArquivo) || a.material || "";
+    var endMaterial = U.linkSeguro(A.endereco(a.materialArquivo) || a.material || "");
     var outras = A.itens("aulas").filter(function (x) { return x.id !== a.id && C.aulaServe(x, publico); }).slice(0, 4);
     var lado = el("aside", { class: "aula-detalhe__lado" }, [
       el("section", { class: "bloco bloco--compacto" }, [
