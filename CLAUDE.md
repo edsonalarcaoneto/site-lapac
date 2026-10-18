@@ -281,7 +281,7 @@ Seguem os capítulos do Robbins e do Bogliolo.
   - o Edson cria a conta e cola a chave SMTP no Supabase;
   - os registros de DNS vão na Whois;
   - depois disso, aplicar os modelos de `supabase/modelos-de-email.md`.
-- [ ] Marcar "Enforce HTTPS" no GitHub Pages.
+- [x] Marcar "Enforce HTTPS" no GitHub Pages (feito em 18/10/2026: http redireciona para https).
 - [ ] Completar `diretoria` em `js/conteudo.js`, só com nome e cargo.
 - [ ] Artigos: o Edson anexa o PDF do resumo sobre LTA (leishmaniose tegumentar americana) pelo painel e
       apaga a entrada duplicada.
