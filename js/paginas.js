@@ -367,19 +367,108 @@
   };
 
   /* ---------- Contato ---------- */
+
+  /*
+    Formulário de mensagem: o Web3Forms recebe o envio e entrega no e-mail da liga.
+    O mesmo formulário é reaproveitado quando a página é redesenhada, para não perder o que foi digitado.
+  */
+  var formularioMensagem = null;
+
+  function montarFormularioMensagem(c) {
+    var nome = el("input", { class: "campo", type: "text", name: "name", autocomplete: "name", required: true, maxlength: "120" });
+    var email = el("input", { class: "campo", type: "email", name: "email", autocomplete: "email", required: true, maxlength: "160" });
+    var assunto = el("input", { class: "campo", type: "text", name: "assunto", required: true, maxlength: "140", placeholder: "Ex.: convite para uma palestra" });
+    var mensagem = el("textarea", { class: "campo", name: "message", rows: "7", required: true, maxlength: "5000" });
+    /* Campo invisível: pessoas não marcam, robôs de spam costumam marcar. */
+    var armadilha = el("input", { type: "checkbox", name: "botcheck", tabindex: "-1", autocomplete: "off", class: "envio__armadilha", "aria-hidden": "true" });
+    var status = el("p", { class: "envio-status", role: "status", "aria-live": "polite" });
+    var enviar = el("button", { type: "submit", class: "botao", text: "Enviar mensagem" });
+
+    function grupo(rotulo, controle, largo, ajuda) {
+      var id = "mensagem-" + controle.name;
+      controle.id = id;
+      var ajudaId = ajuda ? id + "-ajuda" : null;
+      if (ajudaId) controle.setAttribute("aria-describedby", ajudaId);
+      return el("div", { class: "campo-grupo" + (largo ? " campo-grupo--largo" : "") }, [
+        el("label", { class: "campo-rotulo", for: id }, [rotulo, el("span", { class: "obrigatorio", "aria-hidden": "true", text: " *" })]),
+        controle,
+        ajuda ? el("p", { class: "campo-ajuda", id: ajudaId, text: ajuda }) : null
+      ]);
+    }
+
+    function mostrar(texto, tipo) {
+      status.textContent = texto;
+      status.className = "envio-status" + (tipo ? " envio-status--" + tipo : "");
+    }
+
+    var form = el("form", { class: "envio", novalidate: true }, [
+      el("div", { class: "formulario__campos" }, [
+        grupo("Seu nome", nome),
+        grupo("Seu e-mail", email, false, "A resposta da liga vai para este e-mail."),
+        grupo("Assunto", assunto, true),
+        grupo("Mensagem", mensagem, true)
+      ]),
+      armadilha,
+      el("div", { class: "envio__rodape" }, [enviar, status])
+    ]);
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      [nome, email, assunto, mensagem].forEach(function (campo) { campo.value = campo.value.trim(); });
+      if (!form.checkValidity()) {
+        var invalido = form.querySelector(":invalid");
+        mostrar(email.validity.typeMismatch ? "Confira o e-mail: ele parece incompleto." : "Preencha todos os campos marcados com *.", "erro");
+        if (invalido) invalido.focus();
+        return;
+      }
+      enviar.disabled = true;
+      enviar.textContent = "Enviando…";
+      mostrar("");
+      fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          access_key: c.formularioChave,
+          subject: "Site da LAPAC: " + assunto.value,
+          from_name: nome.value + " (site da LAPAC)",
+          name: nome.value,
+          email: email.value,
+          replyto: email.value,
+          assunto: assunto.value,
+          message: mensagem.value,
+          botcheck: armadilha.checked
+        })
+      }).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (dados) {
+          if (!r.ok || !dados.success) throw new Error(dados.message || "HTTP " + r.status);
+        });
+      }).then(function () {
+        form.reset();
+        mostrar("Mensagem enviada. Obrigado! A liga responde pelo e-mail que você informou.", "ok");
+      }).catch(function (erro) {
+        console.warn("Envio da mensagem falhou:", erro && erro.message);
+        mostrar("Não foi possível enviar agora. Tente de novo em alguns minutos ou copie o e-mail da liga e escreva por fora.", "erro");
+      }).then(function () {
+        enviar.disabled = false;
+        enviar.textContent = "Enviar mensagem";
+      });
+    });
+    return form;
+  }
+
   P.contato = function () {
     var secao = App.secao("contato");
     var c = D.contato || {};
 
     var cartaoEmail;
     if (c.email) {
-      var campo = el("input", { id: "contato-email", class: "campo campo--leitura", type: "text", readonly: true, value: c.email, "aria-label": "E-mail da liga" });
       cartaoEmail = el("div", { class: "canal" }, [
         el("p", { class: "canal__tipo", text: "E-mail" }),
-        campo,
+        el("p", { class: "canal__valor canal__valor--email", text: c.email }),
         el("div", { class: "canal__acoes" }, [
-          el("a", { class: "botao", href: "mailto:" + c.email, text: "Escrever e-mail" }),
-          el("button", { type: "button", class: "botao botao--contorno", text: "Copiar e-mail", onclick: function () { U.copiar(c.email, campo); } })
+          el("button", { type: "button", class: "botao botao--contorno", text: "Copiar e-mail", onclick: function (e) {
+            U.copiar(c.email, e.currentTarget.closest(".canal").querySelector(".canal__valor--email"));
+          } })
         ])
       ]);
     } else {
@@ -401,23 +490,40 @@
       c.youtube ? null : el("p", { class: "texto-suave", text: "O canal com as aulas está sendo criado." })
     ]);
 
-    var corpo = el("div", { class: "envoltorio pagina-corpo" }, [
-      el("div", { class: "canais" }, [cartaoEmail, cartaoInsta, cartaoYt]),
-      el("div", { class: "grade-dupla grade-dupla--igual" }, [
-        bloco("Fale com a gente sobre", [
-          el("ul", { class: "lista-motivos" }, [
-            el("li", { text: "Parcerias e convites para ações de extensão" }),
-            el("li", { text: "Sugestões de tema para as aulas" }),
-            el("li", { text: "Convites para palestras e eventos" }),
-            el("li", { text: "Dúvidas sobre a liga" })
-          ])
-        ]),
-        bloco("Onde estamos", [
-          el("p", { class: "titulo-item", text: (D.liga && D.liga.instituicao) || "PUC Goiás" }),
-          el("p", { class: "texto-suave", text: c.cidade || "" })
-        ])
+    var motivos = bloco("Fale com a gente sobre", [
+      el("ul", { class: "lista-motivos" }, [
+        el("li", { text: "Parcerias e convites para ações de extensão" }),
+        el("li", { text: "Sugestões de tema para as aulas" }),
+        el("li", { text: "Convites para palestras e eventos" }),
+        el("li", { text: "Dúvidas sobre a liga" })
       ])
     ]);
+    var ondeEstamos = bloco("Onde estamos", [
+      el("p", { class: "titulo-item", text: (D.liga && D.liga.instituicao) || "PUC Goiás" }),
+      el("p", { class: "texto-suave", text: c.cidade || "" })
+    ]);
+
+    var conteudo;
+    if (c.email && c.formularioChave) {
+      if (!formularioMensagem) formularioMensagem = montarFormularioMensagem(c);
+      conteudo = [
+        el("div", { class: "grade-dupla contato__grade" }, [
+          bloco("Mande uma mensagem", [
+            el("p", { class: "texto-suave", text: "Escreva aqui e a mensagem chega direto no e-mail da liga." }),
+            formularioMensagem
+          ], "contato__mensagem"),
+          el("div", { class: "contato__lado" }, [motivos, ondeEstamos])
+        ]),
+        el("div", { class: "canais" }, [cartaoEmail, cartaoInsta, cartaoYt])
+      ];
+    } else {
+      conteudo = [
+        el("div", { class: "canais" }, [cartaoEmail, cartaoInsta, cartaoYt]),
+        el("div", { class: "grade-dupla grade-dupla--igual" }, [motivos, ondeEstamos])
+      ];
+    }
+
+    var corpo = el("div", { class: "envoltorio pagina-corpo" }, conteudo);
     return el("div", { class: "pagina" }, [C.cabecalhoPagina(secao), corpo]);
   };
 
