@@ -396,6 +396,7 @@
     ]);
     var cartaoYt = el("div", { class: "canal" }, [
       el("p", { class: "canal__tipo", text: "YouTube" }),
+      c.youtube && c.youtubeUsuario ? el("p", { class: "canal__valor", text: c.youtubeUsuario }) : null,
       c.youtube ? C.linkExterno(c.youtube, "Abrir o canal") : C.etiqueta("Em breve"),
       c.youtube ? null : el("p", { class: "texto-suave", text: "O canal com as aulas está sendo criado." })
     ]);
