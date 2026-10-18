@@ -145,6 +145,8 @@
   };
 
   C.linkExterno = function (href, texto, classe) {
+    href = U.linkSeguro(href);
+    if (!href) return null;
     return el("a", { href: href, target: "_blank", rel: "noopener", class: classe === undefined ? "link-seta" : classe }, [texto]);
   };
 
@@ -282,7 +284,8 @@
 
   /* Botão para baixar um arquivo do site (no mesmo endereço, o navegador baixa direto). */
   C.botaoBaixar = function (ref, texto) {
-    var href = App.armazem.endereco(ref);
+    var href = U.linkSeguro(App.armazem.endereco(ref));
+    if (!href) return null;
     var mesmoSite = !/^https?:/i.test(href) || href.indexOf(location.origin + "/") === 0;
     var nome = (ref && ref.nome) || href.split("/").pop();
     return el("a", {
