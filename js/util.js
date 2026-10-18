@@ -197,13 +197,22 @@
     });
   };
 
+  /* Copia um texto. Se o navegador não deixar, seleciona o campo (ou o texto na tela) para a pessoa copiar. */
   U.copiar = function (texto, campo) {
+    function selecionar() {
+      if (!campo) return;
+      if (campo.select) { campo.focus(); campo.select(); return; }
+      var faixa = document.createRange();
+      faixa.selectNodeContents(campo);
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(faixa);
+      U.aviso("Texto selecionado: use Copiar do seu aparelho.");
+    }
     try {
-      navigator.clipboard.writeText(texto).then(function () { U.aviso("Copiado."); }, function () {
-        if (campo) { campo.focus(); campo.select(); }
-      });
+      navigator.clipboard.writeText(texto).then(function () { U.aviso("Copiado."); }, selecionar);
     } catch (e) {
-      if (campo) { campo.focus(); campo.select(); }
+      selecionar();
     }
   };
 
