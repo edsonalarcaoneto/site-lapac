@@ -14,12 +14,13 @@
   var principal;
   var linksMenu = [];
   var rotaAtual = null;
-  var menu, botaoMenu, rotuloLogin, itemSair;
+  var menu, botaoMenu, rotuloLogin, itemSair, loginRodape;
 
   function atualizarSessaoNoMenu() {
     var conectado = !!A.sessao;
     if (itemSair) itemSair.hidden = !conectado;
     if (rotuloLogin) rotuloLogin.textContent = C.nomeSecao(App.secao("login"));
+    if (loginRodape) loginRodape.textContent = C.nomeSecao(App.secao("login"));
   }
 
   /* ---------- cabeçalho ---------- */
@@ -85,7 +86,7 @@
       : el("li", { class: "rodape__pendente", text: "E-mail da liga: em breve" });
     var instaItem = c.instagram ? el("li", null, ["Instagram: ", C.linkExterno(c.instagram, c.instagramUsuario || "Instagram", "")]) : null;
     var ytItem = c.youtube
-      ? el("li", null, ["YouTube: ", C.linkExterno(c.youtube, "canal da liga", "")])
+      ? el("li", null, ["YouTube: ", C.linkExterno(c.youtube, c.youtubeUsuario || "canal da liga", "")])
       : el("li", { class: "rodape__pendente", text: "Canal no YouTube: em breve" });
 
     return el("footer", { class: "rodape" }, [
@@ -103,8 +104,10 @@
           el("h2", { text: "As cores do site" }),
           el("p", { text: "Cada seção tem a cor de uma tampa de tubo de coleta de sangue, e o menu segue a ordem de coleta:" }),
           el("ol", null, App.SECOES.map(function (s) {
+            var link = el("a", { href: "#" + s.id, text: C.nomeSecao(s) });
+            if (s.id === "login") loginRodape = link;
             return el("li", { style: "--cor: var(--tubo-" + s.tampa + ")" }, [
-              el("a", { href: "#" + s.id, text: s.nome }),
+              link,
               el("span", { class: "texto-suave", text: " · " + s.cor.toLowerCase() + " (" + s.uso + ")" })
             ]);
           }))
