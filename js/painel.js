@@ -568,6 +568,13 @@
         if (alvo) alvo.focus();
         return;
       }
+      var linkRuim = ["link", "material"].filter(function (k) { return it[k] && !U.linkWebValido(it[k]); })[0];
+      if (linkRuim) {
+        erro.textContent = "O link precisa ser um endereço completo, começando com https://";
+        var campoLink = raiz.querySelector("[data-chave='" + linkRuim + "']");
+        if (campoLink) campoLink.focus();
+        return;
+      }
       if (ed.col === "aulas" && it.youtube && !U.youtubeId(it.youtube)) {
         erro.textContent = "O link do YouTube não parece válido. Cole o endereço completo do vídeo.";
         return;
