@@ -499,7 +499,7 @@
       ])
     ]);
     var ondeEstamos = bloco("Onde estamos", [
-      el("p", { class: "titulo-item", text: (D.liga && D.liga.instituicao) || "PUC Goiás" }),
+      el("p", { class: "titulo-item", text: c.onde || (D.liga && D.liga.instituicao) || "PUC Goiás" }),
       el("p", { class: "texto-suave", text: c.cidade || "" })
     ]);
 
