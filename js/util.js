@@ -97,6 +97,27 @@
     return U.slug(titulo) + "-" + Math.random().toString(36).slice(2, 6);
   };
 
+  /*
+    Só deixa passar endereços da web (http/https) ou do próprio site.
+    Bloqueia javascript:, data: e outros esquemas que rodariam código ao clicar.
+    Usa o mesmo leitor de endereços do navegador, para não ser enganado por espaços ou quebras de linha.
+  */
+  U.linkSeguro = function (valor) {
+    var v = String(valor || "").trim();
+    if (!v) return "";
+    try {
+      var u = new URL(v, location.href);
+      if (u.protocol === "https:" || u.protocol === "http:") return u.href;
+      if (u.protocol === location.protocol && u.origin === location.origin) return u.href; /* site aberto no computador */
+    } catch (e) { /* endereço inválido */ }
+    return "";
+  };
+
+  /* Link que o diretor cola no painel: precisa ser um endereço completo da web. */
+  U.linkWebValido = function (valor) {
+    return /^https?:\/\//i.test(String(valor || "").trim()) && !!U.linkSeguro(valor);
+  };
+
   /* Aceita link completo do YouTube ou só o código de 11 caracteres. */
   U.youtubeId = function (valor) {
     var v = String(valor || "").trim();
