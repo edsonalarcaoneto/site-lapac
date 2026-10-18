@@ -2,6 +2,11 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
+<!--
+  CSP: de onde a página pode carregar código, estilos, imagens e para onde pode mandar dados.
+  Se trocar o projeto do Supabase ou o serviço do formulário, atualize os endereços aqui.
+-->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://img.youtube.com https://i.ytimg.com https://xrzctbqxlcfwatgddvwr.supabase.co; connect-src 'self' https://xrzctbqxlcfwatgddvwr.supabase.co wss://xrzctbqxlcfwatgddvwr.supabase.co https://api.web3forms.com; frame-src https://www.youtube-nocookie.com; media-src 'self' https://xrzctbqxlcfwatgddvwr.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>LAPAC · PUC Goiás</title>
 <meta name="description" content="LAPAC, Liga Acadêmica de Patologia Clínica da PUC Goiás: aulas, materiais de estudo e educação em saúde.">
@@ -10,17 +15,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
-<link rel="stylesheet" href="css/estilo.css?v=20261018-094253">
+<link rel="stylesheet" href="css/estilo.css?v=20261018-100325">
 </head>
 <body>
 <noscript><p style="padding:16px">Este site precisa de JavaScript ligado para funcionar.</p></noscript>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="js/conteudo.js?v=20261018-094253"></script>
-<script src="js/util.js?v=20261018-094253"></script>
-<script src="js/armazem.js?v=20261018-094253"></script>
-<script src="js/componentes.js?v=20261018-094253"></script>
-<script src="js/paginas.js?v=20261018-094253"></script>
-<script src="js/painel.js?v=20261018-094253"></script>
-<script src="js/app.js?v=20261018-094253"></script>
+<!-- integrity: o navegador só roda a biblioteca se ela for exatamente esta versão (2.45.4). Ao atualizar a versão, gere o hash novo. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
+<script src="js/conteudo.js?v=20261018-100325"></script>
+<script src="js/util.js?v=20261018-100325"></script>
+<script src="js/armazem.js?v=20261018-100325"></script>
+<script src="js/componentes.js?v=20261018-100325"></script>
+<script src="js/paginas.js?v=20261018-100325"></script>
+<script src="js/painel.js?v=20261018-100325"></script>
+<script src="js/app.js?v=20261018-100325"></script>
 </body>
 </html>
