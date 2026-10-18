@@ -70,14 +70,14 @@
 
     /* Última aula */
     var conteudoAula = ultima
-      ? [C.cartaoAula(ultima)]
+      ? [C.cartaoAula(ultima, [], null, { mostrarPublico: true })]
       : [C.emBreve({ titulo: "A primeira aula está em produção", texto: "Quando for publicada, ela aparece aqui com o vídeo e o material de apoio.", selo: "Em gravação" })];
     var portas = el("nav", { class: "portas", "aria-label": "Todas as aulas" }, [
       el("p", { class: "portas__titulo", text: "Todas as aulas" }),
       linkInterno("#profissionais", "Para profissionais de saúde"),
       linkInterno("#populacao", "Para a população")
     ]);
-    var blocoAula = bloco("Última aula", [el("div", { class: "bloco__miolo" }, conteudoAula), portas], "bloco--aula");
+    var blocoAula = bloco("Aula mais recente", [el("div", { class: "bloco__miolo" }, conteudoAula), portas], "bloco--aula");
 
     /* Orientador */
     var o = D.orientador || {};

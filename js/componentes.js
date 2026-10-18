@@ -168,13 +168,18 @@
     return p === "ambos" ? "Profissionais de saúde e população" : p === "populacao" ? "População" : "Profissionais de saúde";
   };
 
-  C.cartaoAula = function (a, termos, publicoPagina) {
+  C.cartaoAula = function (a, termos, publicoPagina, opcoes) {
     termos = Array.isArray(termos) ? termos : [];
+    opcoes = opcoes || {};
     var publico = typeof publicoPagina === "string" ? publicoPagina : C.secaoDaAula(a);
     var secao = App.secao(publico);
-    var outroPublico = C.publicosDaAula(a).length > 1
-      ? (publico === "populacao" ? "Também para profissionais" : "Também para a população")
-      : null;
+    var p = (a && a.publico) || "profissionais";
+    /* Fora das abas de aulas (página inicial), o cartão diz para quem é a aula. */
+    var outroPublico = opcoes.mostrarPublico
+      ? (p === "ambos" ? "Profissionais e população" : p === "populacao" ? "Para a população" : "Para profissionais")
+      : C.publicosDaAula(a).length > 1
+        ? (publico === "populacao" ? "Também para profissionais" : "Também para a população")
+        : null;
     var yt = U.youtubeId(a.youtube);
     var meta = [U.dataBR(a.data), a.ministrante].filter(Boolean).join(" · ");
     return el("a", { class: "cartao-aula", href: "#aula-" + a.id, style: "--cor-secao: var(--tubo-" + secao.tampa + ")" }, [
