@@ -33,7 +33,10 @@ window.LAPAC = {
     instagramUsuario: "@lapac_pucgo",
     youtube: "https://www.youtube.com/@lapacpucgoias",
     youtubeUsuario: "@lapacpucgoias",
-    cidade: "Goiânia, Goiás"
+    cidade: "Goiânia, Goiás",
+    // Formulário da aba Contato: o Web3Forms entrega as mensagens no e-mail da liga.
+    // A chave é pública por natureza (só serve para enviar mensagens a esse e-mail).
+    formularioChave: "b4b95ac5-3971-4c9d-a74b-95e78dae1160"
   },
 
   /*
