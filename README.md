@@ -39,6 +39,10 @@ com opção de rascunho. O que é publicado pelo painel se soma ao `js/conteudo.
 
 ## Pendências
 
-- Preencher o e-mail da liga e o link do canal do YouTube em `js/conteudo.js`.
 - Completar a lista da diretoria em `js/conteudo.js`.
-- Configurar o Supabase e preencher o bloco `servidor` em `js/conteudo.js`.
+- Ligar o serviço de envio de e-mails (Resend) com o domínio `lapac.space`.
+
+## Claude Code
+
+O arquivo `CLAUDE.md` reúne o contexto do projeto (como o site funciona, o servidor, as regras de
+segurança e as pendências). O Claude Code lê esse arquivo sozinho quando é aberto nesta pasta.
