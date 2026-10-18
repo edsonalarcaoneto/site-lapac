@@ -23,6 +23,14 @@ vez que ele aparece e diga o que a pessoa precisa fazer do lado dela (clicar, co
   - DNS do domínio;
   - configurações do repositório no GitHub.
 - Fotos com pessoas e qualquer lista de participantes exigem consentimento (LGPD).
+- Todo link que vem de dados (painel ou `conteudo.js`) passa por `U.linkSeguro` antes de virar `href`:
+  só passam `http`/`https` ou caminhos do próprio site. Use `C.linkExterno` ou `C.botaoBaixar`, que já
+  fazem isso. O painel recusa salvar `link` ou `material` que não comecem com `https://`.
+- O `index.html` tem uma CSP (Content Security Policy) em `<meta>`. Se entrar um serviço novo (outro
+  CDN, outro projeto do Supabase, outro serviço de formulário), acrescente o endereço nela, ou o navegador
+  bloqueia.
+- O `supabase-js` é carregado com `integrity` (SRI). Ao trocar de versão, gere o hash novo:
+  `curl -sL <url> | openssl dgst -sha384 -binary | openssl base64 -A`.
 
 ## O que é o site
 
@@ -278,6 +286,13 @@ Seguem os capítulos do Robbins e do Bogliolo.
 - [ ] Artigos: o Edson anexa o PDF do resumo sobre LTA (leishmaniose tegumentar americana) pelo painel e
       apaga a entrada duplicada.
 - [ ] Desligar o primeiro acesso quando todos os diretores tiverem conta.
+- [ ] Segurança (revisão de outubro de 2026):
+  - o Edson roda `supabase/limites-arquivos.sql` (só JPEG e PDF, até 45 MB por arquivo);
+  - Authentication → senha com no mínimo 8 caracteres também no servidor;
+  - GitHub → Settings → Emails → "Keep my email addresses private";
+  - ver no Web3Forms se dá para ligar verificação anti-robô ou limitar ao domínio `lapac.space`;
+  - definir como tirar o acesso de um diretor que sai da liga (apagar da tabela `diretores` e a conta em
+    Authentication → Users).
 - [ ] Decidir se o repositório continua público.
   - No GitHub Free, o Pages só funciona com repositório público.
   - A alternativa é hospedar em outro serviço, por exemplo o Cloudflare Pages.
