@@ -883,6 +883,19 @@ a.tubo:focus-visible { outline-offset: 6px; border-radius: 8px; }
 }
 .canal__tipo { font-family: var(--f-rotulo); font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; color: var(--tinta-suave); }
 .canal__valor { font-family: var(--f-display); font-size: 1.3rem; font-weight: 600; overflow-wrap: anywhere; }
+.canal__valor--email { font-size: 1.1rem; }
+.contato__lado { display: grid; gap: 28px; align-content: start; min-width: 0; }
+@media (min-width: 900px) {
+  .contato__grade { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+  .contato__lado { gap: 36px; }
+}
+.envio { display: grid; gap: 20px; }
+.envio__armadilha { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.envio__rodape { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; border-top: 1px solid var(--linha); padding-top: 18px; }
+.envio-status { font-size: .9375rem; }
+.envio-status:empty { display: none; }
+.envio-status--ok { padding: 10px 14px; border-radius: 8px; background: var(--ok-fundo); color: var(--tinta); }
+.envio-status--erro { color: var(--perigo); font-weight: 700; }
 .lista-motivos { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
 .lista-motivos li { display: flex; gap: 10px; align-items: baseline; }
 .lista-motivos li::before { content: ""; width: 8px; height: 8px; flex: none; border-radius: 2px; background: var(--carmim); transform: translateY(-1px); }
