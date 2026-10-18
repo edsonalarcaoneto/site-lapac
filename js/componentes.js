@@ -117,14 +117,16 @@
   C.tela = function (opcoes) {
     opcoes = opcoes || {};
     var filhos = [];
-    if (opcoes.youtube) {
+    if (opcoes.imagem) {
+      filhos.push(el("img", { src: opcoes.imagem, alt: "", loading: "lazy" }));
+    } else if (opcoes.youtube) {
       var capa = el("img", { src: "https://img.youtube.com/vi/" + opcoes.youtube + "/hqdefault.jpg", alt: "", loading: "lazy" });
       capa.addEventListener("error", function () { capa.remove(); });
       filhos.push(capa);
     }
-    filhos.push(el("span", { class: "tela__icone", html: opcoes.icone || SVG_PLAY }));
+    if (!opcoes.imagem || opcoes.youtube) filhos.push(el("span", { class: "tela__icone", html: opcoes.icone || SVG_PLAY }));
     if (opcoes.selo) filhos.push(el("span", { class: "tela__selo", text: opcoes.selo }));
-    return el("div", { class: "tela" + (opcoes.youtube ? " tela--video" : ""), "aria-hidden": "true" }, filhos);
+    return el("div", { class: "tela" + (opcoes.youtube ? " tela--video" : "") + (opcoes.imagem ? " tela--capa" : ""), "aria-hidden": "true" }, filhos);
   };
 
   C.emBreve = function (opcoes) {
@@ -147,15 +149,41 @@
   };
 
   /* ---------- cartões ---------- */
-  C.cartaoAula = function (a, termos) {
+  /* ---------- público das aulas ----------
+     a.publico: "profissionais", "populacao" ou "ambos" (aparece nas duas abas). */
+  C.publicosDaAula = function (a) {
+    var p = (a && a.publico) || "profissionais";
+    if (p === "ambos") return ["profissionais", "populacao"];
+    return [p === "populacao" ? "populacao" : "profissionais"];
+  };
+  C.aulaServe = function (a, publico) { return C.publicosDaAula(a).indexOf(publico) >= 0; };
+  /* Aba em que a aula está sendo vista: para aulas dos dois públicos, a aba de onde a pessoa veio. */
+  C.secaoDaAula = function (a) {
+    var ps = C.publicosDaAula(a);
+    if (ps.length > 1 && App.ultimaAbaAulas && ps.indexOf(App.ultimaAbaAulas) >= 0) return App.ultimaAbaAulas;
+    return ps[0];
+  };
+  C.nomePublico = function (a) {
+    var p = (a && a.publico) || "profissionais";
+    return p === "ambos" ? "Profissionais de saúde e população" : p === "populacao" ? "População" : "Profissionais de saúde";
+  };
+
+  C.cartaoAula = function (a, termos, publicoPagina) {
     termos = Array.isArray(termos) ? termos : [];
-    var secao = App.secao(a.publico === "populacao" ? "populacao" : "profissionais");
+    var publico = typeof publicoPagina === "string" ? publicoPagina : C.secaoDaAula(a);
+    var secao = App.secao(publico);
+    var outroPublico = C.publicosDaAula(a).length > 1
+      ? (publico === "populacao" ? "Também para profissionais" : "Também para a população")
+      : null;
     var yt = U.youtubeId(a.youtube);
     var meta = [U.dataBR(a.data), a.ministrante].filter(Boolean).join(" · ");
     return el("a", { class: "cartao-aula", href: "#aula-" + a.id, style: "--cor-secao: var(--tubo-" + secao.tampa + ")" }, [
-      C.tela({ youtube: yt, icone: yt ? SVG_PLAY : SVG_DOC, selo: yt ? null : (a.texto ? "Leitura" : "Em breve") }),
+      C.tela({ youtube: yt, imagem: a.capa ? App.armazem.endereco(a.capa) : null, icone: yt ? SVG_PLAY : SVG_DOC, selo: yt ? null : (a.texto ? "Leitura" : "Em breve") }),
       el("div", { class: "cartao-aula__corpo" }, [
-        a.area ? C.etiqueta(a.area) : null,
+        (a.area || outroPublico) ? el("div", { class: "cartao-aula__etiquetas" }, [
+          a.area ? C.etiqueta(a.area) : null,
+          outroPublico ? el("span", { class: "etiqueta etiqueta--publico", text: outroPublico }) : null
+        ]) : null,
         el("h3", { class: "cartao-aula__titulo" }, [U.destacar(a.titulo, termos)]),
         a.resumo ? el("p", { class: "cartao-aula__resumo" }, [U.destacar(a.resumo, termos)]) : null,
         meta ? el("p", { class: "cartao-aula__meta", text: meta }) : null

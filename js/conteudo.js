@@ -106,6 +106,10 @@ window.LAPAC = {
       data: "2026-10-17",
       ministrante: "",
       youtube: "",
+      capa: {
+        src: "img/aulas/coleta-de-urina.svg",
+        descricao: "Ilustração: o primeiro e o último jato de urina são descartados e o jato do meio é coletado no frasco estéril, que deve chegar ao laboratório em até 1 hora."
+      },
       resumo: "O passo a passo da coleta, o porquê de cada cuidado e o que acontece com o resultado quando a coleta dá errado.",
       texto: [
         "Esse jeito de coletar serve para dois exames. O exame de urina comum (também chamado de urina tipo 1, EAS ou sumário de urina) avalia o aspecto, as substâncias e as células da urina. A urocultura procura bactérias que estejam causando infecção.",

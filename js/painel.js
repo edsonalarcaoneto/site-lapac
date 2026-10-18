@@ -439,7 +439,7 @@
     var linhas = itens.map(function (it) {
       var publicado = (it.status || "publicado") === "publicado";
       var detalhes = [];
-      if (col === "aulas") detalhes.push(it.publico === "populacao" ? "População" : "Profissionais de saúde");
+      if (col === "aulas") detalhes.push(C.nomePublico(it));
       if (it.tipo) detalhes.push(it.tipo);
       if (it.data) detalhes.push(U.dataBR(it.data));
       var quem = el("span", { class: "linha__quem" });
@@ -614,25 +614,41 @@
   function camposAula(it) {
     var lista = el("datalist", { id: "areas-sugeridas" });
     function preencherAreas() {
-      var areas = (D.areas && D.areas[it.publico]) || [];
+      var areas = [];
+      C.publicosDaAula(it).forEach(function (p) {
+        ((D.areas && D.areas[p]) || []).forEach(function (x) { if (areas.indexOf(x) < 0) areas.push(x); });
+      });
       lista.replaceChildren.apply(lista, areas.map(function (a) { return el("option", { value: a }); }));
     }
     preencherAreas();
 
-    var publico = el("fieldset", { class: "segmentado", "data-chave": "publico" }, [
-      el("legend", { class: "campo-rotulo" }, ["Para quem é esta aula?", el("span", { class: "obrigatorio", "aria-hidden": "true", text: " *" })])
-    ].concat([["profissionais", "Profissionais de saúde", "Vai para a aba Para profissionais", "soro"],
-              ["populacao", "População", "Vai para a aba Para a população", "gel"]].map(function (o) {
-      var r = el("input", { type: "radio", name: "publico", value: o[0], id: "publico-" + o[0] });
-      r.checked = it.publico === o[0];
-      r.addEventListener("change", function () { it.publico = o[0]; preencherAreas(); });
+    /* Pode marcar um público ou os dois: a aula aparece em cada aba marcada. */
+    var marcados = it.publico ? C.publicosDaAula(it) : [];
+    var caixas = {};
+    function atualizarPublico() {
+      var p = caixas.profissionais.checked, q = caixas.populacao.checked;
+      it.publico = p && q ? "ambos" : p ? "profissionais" : q ? "populacao" : "";
+      preencherAreas();
+    }
+    var publico = el("fieldset", { class: "segmentado", "data-chave": "publico", tabindex: "-1" }, [
+      el("legend", { class: "campo-rotulo" }, [
+        "Para quem é esta aula?", el("span", { class: "obrigatorio", "aria-hidden": "true", text: " *" }),
+        el("span", { class: "segmentado__dica", text: " Pode marcar os dois." })
+      ])
+    ].concat([["profissionais", "Profissionais de saúde", "Aparece na aba Para profissionais", "soro"],
+              ["populacao", "População", "Aparece na aba Para a população", "gel"]].map(function (o) {
+      var r = el("input", { type: "checkbox", name: "publico-" + o[0], value: o[0], id: "publico-" + o[0] });
+      r.checked = marcados.indexOf(o[0]) >= 0;
+      caixas[o[0]] = r;
+      r.addEventListener("change", atualizarPublico);
       return el("label", { class: "segmentado__opcao", for: "publico-" + o[0], style: "--cor-opcao: var(--tubo-" + o[3] + ")" }, [
         r,
         el("span", { class: "segmentado__marca", "aria-hidden": "true" }),
         el("span", { class: "segmentado__textos" }, [
           el("span", { class: "segmentado__nome", text: o[1] }),
           el("span", { class: "segmentado__ajuda", text: o[2] })
-        ])
+        ]),
+        el("span", { class: "segmentado__check", "aria-hidden": "true" })
       ]);
     })));
 
@@ -657,6 +673,7 @@
       campo("Data", entrada(it, "data", { type: "date" }), { obrigatorio: true }),
       campo("Resumo", entrada(it, "resumo", { tag: "textarea", rows: "2", maxlength: "240" }), { obrigatorio: true, largo: true, ajuda: "Uma ou duas frases. Aparece no cartão da aula." }),
       grupoYoutube,
+      campoCapa(it),
       campo("Ministrante", entrada(it, "ministrante", { placeholder: "Quem deu a aula" })),
       campo("Texto da aula", entrada(it, "texto", { tag: "textarea", rows: "10" }), {
         largo: true,
@@ -728,6 +745,42 @@
       campoFotos(it),
       campo("Link da publicação no Instagram", entrada(it, "link", { type: "url", placeholder: "https://www.instagram.com/p/…" }), { largo: true })
     ];
+  }
+
+  /* Imagem de capa da aula: aparece no cartão e no alto da página enquanto não há vídeo. */
+  function campoCapa(it) {
+    var grupo = el("div", { class: "campo-grupo campo-grupo--largo" });
+    function desenhar() {
+      var filhos = [el("p", { class: "campo-rotulo", text: "Imagem de capa" })];
+      if (it.capa) {
+        var descricao = el("input", { class: "campo campo--pequeno", type: "text", placeholder: "Descreva a imagem em poucas palavras", "aria-label": "Descrição da imagem de capa" });
+        descricao.value = it.capa.descricao || "";
+        descricao.addEventListener("input", function () { it.capa.descricao = descricao.value; });
+        filhos.push(el("div", { class: "capa-edicao" }, [
+          el("img", { src: A.endereco(it.capa), alt: "" }),
+          el("div", { class: "capa-edicao__lado" }, [
+            descricao,
+            el("button", { type: "button", class: "botao botao--discreto", text: "Tirar imagem", onclick: function () { delete it.capa; desenhar(); } })
+          ])
+        ]));
+      } else if (A.podeEnviarArquivos()) {
+        var arquivo = el("input", { type: "file", accept: "image/*", class: "campo campo--arquivo", id: "capa-arquivo", "aria-label": "Enviar a imagem de capa" });
+        var status = el("p", { class: "campo-ajuda", text: "Opcional. Formato de tela de TV (16:9) fica melhor. Com vídeo do YouTube, a capa substitui a miniatura do vídeo." });
+        arquivo.addEventListener("change", function () {
+          var f = arquivo.files && arquivo.files[0];
+          if (!f) return;
+          status.textContent = "Enviando " + f.name + "…";
+          A.enviarImagem(f).then(function (ref) { it.capa = Object.assign({ descricao: "" }, ref); desenhar(); }, function (e) {
+            status.textContent = mensagemErro(e);
+            status.className = "campo-ajuda campo-ajuda--erro";
+          });
+        });
+        filhos.push(arquivo, status);
+      }
+      grupo.replaceChildren.apply(grupo, filhos);
+    }
+    desenhar();
+    return grupo;
   }
 
   function campoFotos(it) {

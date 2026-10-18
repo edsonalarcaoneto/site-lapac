@@ -98,7 +98,7 @@
     var prods = A.itens("producoes").slice(0, 2);
     var blocoProd = bloco("Produções científicas recentes", [
       prods.length
-        ? el("div", { class: "grade-fichas grade-fichas--duas" }, prods.map(C.fichaProducao))
+        ? el("div", { class: "grade-fichas grade-fichas--duas" }, prods.map(function (p) { return C.fichaProducao(p); }))
         : C.emBreve({ titulo: "Em preparação", texto: "Os primeiros trabalhos da liga, como resumos, artigos e apresentações em congressos, vão aparecer aqui.", icone: C.SVG.doc, selo: "Em breve", compacto: true }),
       linkInterno("#artigos", "Ver todos os artigos")
     ]);
@@ -127,7 +127,8 @@
   /* ---------- Aulas (profissionais ou população) ---------- */
   function paginaAulas(publico) {
     var secao = App.secao(publico);
-    var aulas = A.itens("aulas").filter(function (a) { return (a.publico || "profissionais") === publico; });
+    App.ultimaAbaAulas = publico;
+    var aulas = A.itens("aulas").filter(function (a) { return C.aulaServe(a, publico); });
     var corpo = el("div", { class: "envoltorio pagina-corpo" });
 
     if (!aulas.length) {
@@ -167,7 +168,7 @@
           resultado.replaceChildren.apply(resultado, ordem.map(function (g) {
             return el("section", { class: "grupo" }, [
               el("h2", { class: "rotulo", text: g }),
-              el("div", { class: "grade-cartoes" }, grupos[g].map(function (a) { return C.cartaoAula(a, termos); }))
+              el("div", { class: "grade-cartoes" }, grupos[g].map(function (a) { return C.cartaoAula(a, termos, publico); }))
             ]);
           }));
         }
@@ -203,7 +204,7 @@
     var a = A.item("aulas", id);
     var ehDiretor = !!A.sessao;
     if (!a || ((a.status || "publicado") !== "publicado" && !ehDiretor)) return P.naoEncontrada();
-    var publico = a.publico === "populacao" ? "populacao" : "profissionais";
+    var publico = C.secaoDaAula(a);
     var secao = App.secao(publico);
     var yt = U.youtubeId(a.youtube);
 
@@ -228,6 +229,11 @@
       video = el("a", { class: "video video--link", href: "https://www.youtube.com/watch?v=" + yt, target: "_blank", rel: "noopener" }, [
         C.tela({ youtube: yt, selo: "Assistir no YouTube" })
       ]);
+    } else if (a.capa) {
+      video = el("figure", { class: "video video--capa" }, [
+        el("img", { src: A.endereco(a.capa), alt: a.capa.descricao || "" }),
+        el("span", { class: "tela__selo", text: "Vídeo em gravação" })
+      ]);
     } else {
       video = el("div", { class: "video" }, [C.tela({ selo: "Vídeo em gravação" })]);
     }
@@ -244,7 +250,7 @@
     ]);
 
     var endMaterial = A.endereco(a.materialArquivo) || a.material || "";
-    var outras = A.itens("aulas").filter(function (x) { return x.id !== a.id && (x.publico || "profissionais") === publico; }).slice(0, 4);
+    var outras = A.itens("aulas").filter(function (x) { return x.id !== a.id && C.aulaServe(x, publico); }).slice(0, 4);
     var lado = el("aside", { class: "aula-detalhe__lado" }, [
       el("section", { class: "bloco bloco--compacto" }, [
         el("h2", { class: "rotulo", text: "Material de apoio" }),
@@ -255,7 +261,7 @@
       el("section", { class: "bloco bloco--compacto" }, [
         el("h2", { class: "rotulo", text: "Ficha da aula" }),
         el("dl", { class: "ficha-aula" }, [
-          el("div", null, [el("dt", { text: "Público" }), el("dd", { text: publico === "populacao" ? "População" : "Profissionais de saúde" })]),
+          el("div", null, [el("dt", { text: "Público" }), el("dd", { text: C.nomePublico(a) })]),
           a.area ? el("div", null, [el("dt", { text: "Área" }), el("dd", { text: a.area })]) : null,
           a.data ? el("div", null, [el("dt", { text: "Publicada em" }), el("dd", { text: U.dataBR(a.data) })]) : null,
           a.ministrante ? el("div", null, [el("dt", { text: "Ministrante" }), el("dd", { text: a.ministrante })]) : null

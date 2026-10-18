@@ -145,7 +145,7 @@
     principal.replaceChildren(r.conteudo);
 
     var secaoAtiva = rota.indexOf("aula-") === 0
-      ? ((A.item("aulas", rota.slice(5)) || {}).publico === "populacao" ? "populacao" : "profissionais")
+      ? C.secaoDaAula(A.item("aulas", rota.slice(5)) || {})
       : rota;
     var sAtiva = App.secao(secaoAtiva);
     if (sAtiva) principal.style.setProperty("--cor-secao", "var(--tubo-" + sAtiva.tampa + ")");
